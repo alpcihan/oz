@@ -1,5 +1,3 @@
 #include "Vulkan.h"
 
-namespace bee::vk {
-    
-}
+namespace bee::vk {}

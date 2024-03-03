@@ -18,3 +18,5 @@ target_link_libraries(${BEE_LIB_NAME}
         glfw
         glm
 )
+
+add_dependencies(${BEE_LIB_NAME} BEE_SHADERS)

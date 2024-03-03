@@ -27,8 +27,7 @@ class DevApp {
     
 public:
     void run() {
-        _initWindow();
-        _initVulkan();
+        _init();
         _mainLoop();
         _cleanup();
     }
@@ -40,14 +39,12 @@ private:
 
     GLFWwindow* m_window;
 
-    std::unique_ptr<bee::vk::Context> ctx;
+    std::unique_ptr<bee::vk::Context> m_ctx;
 
-    // VkInstance m_instance;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
 
-    VkSurfaceKHR m_surface;
     VkQueue m_presentQueue;
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
@@ -86,24 +83,10 @@ private:
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 private:
-    void _initWindow() {
-        glfwInit();
+    void _init() {
+        m_ctx = std::make_unique<bee::vk::Context>();
+        m_window = m_ctx -> createWindow(m_WIDTH, m_HEIGHT, "bee");
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-        m_window = glfwCreateWindow(m_WIDTH, m_HEIGHT, "Vulkan", nullptr, nullptr);
-    }
-
-    void _initVulkan() {
-        auto requiredExtensions = _getRequiredExtensions();
-        bee::vk::ContextConfig ctxConfig {
-            .requiredExtensionsCount = requiredExtensions.size(),
-            .requiredExtensions = requiredExtensions.data()
-        };
-        ctx = std::make_unique<bee::vk::Context>(ctxConfig);
-
-        _createSurface();
         _pickPhysicalDevice();
         _createLogicalDevice();
         _createSwapChain();
@@ -116,50 +99,16 @@ private:
         _createSyncObjects();
     }
 
-    void _createSurface() {
-        if (glfwCreateWindowSurface(ctx -> get(), m_window, nullptr, &m_surface) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
-    }
-
-    void _createInstance() {
-        // display available extensions
-        /*
-        uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-        std::cout << "available extensions:\n";
-        for (const auto& extension : extensions) {
-            std::cout << '\t' << extension.extensionName << '\n';
-        }
-        */
-    }
-
-    std::vector<const char*> _getRequiredExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        if (true) {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        return extensions;
-    }
-
     void _pickPhysicalDevice() {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(ctx -> get(), &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(m_ctx -> get(), &deviceCount, nullptr);
 
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(ctx -> get(), &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(m_ctx -> get(), &deviceCount, devices.data());
 
         for (const auto& device : devices) {
             if (_isDeviceSuitable(device)) {
@@ -216,7 +165,7 @@ private:
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = m_surface;
+        createInfo.surface = m_ctx -> getSurface();
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -267,7 +216,7 @@ private:
         for (const auto& queueFamily : queueFamilies) {
             // present family
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_ctx -> getSurface(), &presentSupport);
             if (presentSupport) {
                 indices.presentFamily = i;
             }
@@ -290,22 +239,22 @@ private:
     SwapChainSupportDetails _querySwapChainSupport(VkPhysicalDevice physicalDevice) {
         // capabilities
         SwapChainSupportDetails details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_ctx -> getSurface(), &details.capabilities);
 
         // formats
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_ctx -> getSurface(), &formatCount, nullptr);
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_ctx -> getSurface(), &formatCount, details.formats.data());
         }
 
         // present mode
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_ctx -> getSurface(), &presentModeCount, nullptr);
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_surface, &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_ctx -> getSurface(), &presentModeCount, details.presentModes.data());
         }
 
         return details;
@@ -821,21 +770,6 @@ private:
 
         // device
         vkDestroyDevice(m_device, nullptr);
-
-        // debug utils
-        //if (m_enableValidationLayers) {
-        //    _destroyDebugUtilsMessengerEXT(ctx -> get(), m_debugMessenger, nullptr);
-        //}
-
-        // surface
-        vkDestroySurfaceKHR(ctx -> get(), m_surface, nullptr);
-
-        // instance + physical device
-        // vkDestroyInstance(ctx -> get(), nullptr);
-
-        // window + glfw
-        glfwDestroyWindow(m_window);
-        glfwTerminate();
     }
 
 };

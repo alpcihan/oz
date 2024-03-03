@@ -5,10 +5,10 @@
 namespace bee {
 namespace vk {
 
-#if 1
-const static bool BEE_ENABLE_VALIDATION_LAYERS = true;
-#else
+#if 0
 const static bool BEE_ENABLE_VALIDATION_LAYERS = false;
+#else
+const static bool BEE_ENABLE_VALIDATION_LAYERS = true;
 #endif
 
 // debug
@@ -71,7 +71,43 @@ void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
 
 }
 
-Context::Context(const ContextConfig& config) {
+// extension
+namespace {
+
+const static std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+std::vector<const char*> getRequiredExtensions() {
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    if (BEE_ENABLE_VALIDATION_LAYERS) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return extensions;
+}
+
+bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
+}
+
+}
+
+Context::Context() {
     // validation layers
     if (BEE_ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested, but not available!");
@@ -84,13 +120,17 @@ Context::Context(const ContextConfig& config) {
     appInfo.pEngineName = "bee";
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
+    // extensions
+    glfwInit();
+    auto extensions = getRequiredExtensions();
+
     // create instance info
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = config.requiredExtensionsCount;
-    createInfo.ppEnabledExtensionNames = config.requiredExtensions;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
 
     if (BEE_ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
@@ -106,6 +146,7 @@ Context::Context(const ContextConfig& config) {
         throw std::runtime_error("Failed to create vulkan instance!");
     }
 
+    // setup debug messenger
     _setupDebugMessenger();
 }
 
@@ -116,9 +157,35 @@ Context::~Context() {
         m_debugMessenger = VK_NULL_HANDLE;
     }
 
+    // surface
+    if (m_surface != VK_NULL_HANDLE) {
+        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+        m_surface = VK_NULL_HANDLE;
+    }
+
     // instance
     vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
+
+    // window (TODO: move to a window class)
+    if (m_window != nullptr) {
+        glfwDestroyWindow(m_window);
+        m_window = nullptr;
+        glfwTerminate();
+    }
+}
+
+GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* name) {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+    m_window = glfwCreateWindow(width, height, name, nullptr, nullptr);
+
+    if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+
+    return m_window;
 }
 
 void Context::_setupDebugMessenger() {

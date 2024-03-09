@@ -157,10 +157,10 @@ Context::Context() {
             std::optional<uint32_t> graphicsFamily;
             uint32_t queueFamilyCount = 0;
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-            std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-            for (int i = 0; i < queueFamilies.size(); i++) {
-                const auto& queueFamily = queueFamilies[i];
+            m_queueFamilies.resize(queueFamilyCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, m_queueFamilies.data());
+            for (int i = 0; i < m_queueFamilies.size(); i++) {
+                const auto& queueFamily = m_queueFamilies[i];
 
                 // graphics family
                 if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -227,9 +227,8 @@ Context::Context() {
         } else {
             createInfo.enabledLayerCount = 0;
         }
- 
-        assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
 
+        assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
     }
 
     // get present queue
@@ -264,6 +263,8 @@ Context::~Context() {
         m_window = nullptr;
         glfwTerminate();
     }
+
+
 }
 
 GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* name) {
@@ -274,8 +275,7 @@ GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* n
 
     // create surface
     assert(glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) == VK_SUCCESS);
-    
-    /*
+
     // create swap chain
     {
         // query swap chain support
@@ -354,6 +354,28 @@ GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* n
             }
         }
 
+        // get present queue
+        {
+            bool presentFamilyFound = false;
+            for (int i = 0; i < m_queueFamilies.size(); i++) {
+                const auto& queueFamily = m_queueFamilies[i];
+
+                // present family
+                // TODO: compare same family with graphics queue
+                VkBool32 presentSupport = false;
+                vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, m_surface, &presentSupport);
+                if (presentSupport) {
+                    m_presentFamily = i;
+                    presentFamilyFound = true;
+                    break;
+                }
+            }
+
+            assert(presentFamilyFound);
+
+            vkGetDeviceQueue(m_device, m_presentFamily, 0, &m_presentQueue);
+        }
+
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = m_surface;
@@ -363,8 +385,32 @@ GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* n
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.preTransform = capabilities.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        uint32_t queueFamilyIndices[] = {m_graphicsFamily, m_presentFamily};
+        if (m_graphicsFamily != m_presentFamily) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;      // optional
+            createInfo.pQueueFamilyIndices = nullptr;  // optional
+        }
+
+        assert(vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain) == VK_SUCCESS);
+
+        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
+        m_swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
+
+        m_swapChainImageFormat = surfaceFormat.format;
+        m_swapChainExtent = extent;
     }
-    */
 
     return m_window;
 }

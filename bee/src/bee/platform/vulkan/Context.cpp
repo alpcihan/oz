@@ -2,52 +2,15 @@
 
 #include "bee/platform/vulkan/Context.h"
 
-namespace bee {
-namespace vk {
+namespace bee::vk {
 
-#if 0
+#if 1
 const static bool BEE_ENABLE_VALIDATION_LAYERS = false;
 #else
 const static bool BEE_ENABLE_VALIDATION_LAYERS = true;
 #endif
 
-// debug
 namespace {
-
-const static std::vector<const char*> m_validationLayers = {"VK_LAYER_KHRONOS_validation"};
-
-bool checkValidationLayerSupport() {
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    for (const char* layerName : m_validationLayers) {
-        bool layerFound = false;
-
-        for (const auto& layerProperties : availableLayers) {
-            if (strcmp(layerName, layerProperties.layerName) == 0) {
-                layerFound = true;
-                break;
-            }
-        }
-
-        if (!layerFound) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -61,180 +24,61 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
-}
-
-}
-
-// extension
-namespace {
-
-// get required extensions
-const std::vector<const char*> requiredExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
 }
 
 Context::Context() {
+    const std::vector<const char*> requiredExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> validationLayers = {};
+
     // validation layers
-    if (BEE_ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport()) {
-        throw std::runtime_error("Validation layers requested, but not available!");
+    if (BEE_ENABLE_VALIDATION_LAYERS) {
+        validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+        assert(_areValidationLayersSupported(validationLayers));
     }
 
-    // init instance
-    {
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "bee";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "bee";
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        // get extensions
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-        if (BEE_ENABLE_VALIDATION_LAYERS) {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        // create instance info
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
-
-        if (BEE_ENABLE_VALIDATION_LAYERS) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
-            createInfo.ppEnabledLayerNames = m_validationLayers.data();
-            populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-        } else {
-            createInfo.enabledLayerCount = 0;
-            createInfo.pNext = nullptr;
-        }
-
-        assert(vkCreateInstance(&createInfo, nullptr, &m_instance) == VK_SUCCESS);
+    // get extensions
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::vector<const char*> requiredInstanceExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    if (BEE_ENABLE_VALIDATION_LAYERS) {
+        requiredInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
-    // init debug messenger
-    {
-        if (!BEE_ENABLE_VALIDATION_LAYERS) {
-            return;
-        }
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo =
+        BEE_ENABLE_VALIDATION_LAYERS
+            ? VkDebugUtilsMessengerCreateInfoEXT{
+                  .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                  .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                  .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+                  .pfnUserCallback = debugCallback}
+            : VkDebugUtilsMessengerCreateInfoEXT{};
 
-        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = debugCallback;
-        createInfo.pUserData = nullptr;  // optional
+    // create instance
+    _createInstance(static_cast<uint32_t>(requiredInstanceExtensions.size()),
+                    requiredInstanceExtensions.data(),
+                    static_cast<uint32_t>(validationLayers.size()),
+                    validationLayers.data(),
+                    BEE_ENABLE_VALIDATION_LAYERS
+                        ? (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo
+                        : nullptr);
 
-        populateDebugMessengerCreateInfo(createInfo);
-
-        assert(createDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) == VK_SUCCESS);
+    // create debug messenger
+    if (BEE_ENABLE_VALIDATION_LAYERS) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
+        assert(func != nullptr);
+        assert(func(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger) == VK_SUCCESS);
     }
 
-    // init physical device
-    {
-        // get physical devices
-        uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
-        assert(deviceCount > 0);
-        std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-        vkEnumeratePhysicalDevices(m_instance, &deviceCount, physicalDevices.data());
+    // create physical device
+    _createPhysicalDevice(requiredExtensions);
 
-        // find "suitable" GPU
-        for (const auto& physicalDevice : physicalDevices) {
-            // check queue family support
-            std::optional<uint32_t> graphicsFamily;
-            uint32_t queueFamilyCount = 0;
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-            m_queueFamilies.resize(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, m_queueFamilies.data());
-            for (int i = 0; i < m_queueFamilies.size(); i++) {
-                const auto& queueFamily = m_queueFamilies[i];
+    // create logical device
+    _createLogicalDevice(requiredExtensions, validationLayers);
 
-                // graphics family
-                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                    graphicsFamily = i;
-                }
-            }
-            bool areQueueFamiliesSupported = graphicsFamily.has_value();
-
-            // check extension support
-            uint32_t extensionCount;
-            vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
-            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-            vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
-            uint32_t extensionMatchCount = 0;
-            for (const auto& availableExtension : availableExtensions) {
-                for (const auto& requiredExtension : requiredExtensions) {
-                    if (strcmp(requiredExtension, availableExtension.extensionName) == 0) {
-                        extensionMatchCount++;
-                    }
-                }
-            }
-            bool areExtensionsSupported = extensionMatchCount == (uint32_t)requiredExtensions.size();
-
-            // check if the GPU is suitable
-            bool isSuitable = areExtensionsSupported && areQueueFamiliesSupported;
-
-            if (isSuitable) {
-                m_graphicsFamily = graphicsFamily.value();
-                m_physicalDevice = physicalDevice;
-                break;
-            }
-        }
-
-        assert(m_physicalDevice != VK_NULL_HANDLE);
-    }
-
-    // init logical device
-    {
-        std::set<uint32_t> uniqueQueueFamilies = {m_graphicsFamily};
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-
-        float queuePriority = 1.0f;
-        for (uint32_t queueFamily : uniqueQueueFamilies) {
-            VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamily;
-            queueCreateInfo.queueCount = 1;
-            queueCreateInfo.pQueuePriorities = &queuePriority;
-            queueCreateInfos.push_back(queueCreateInfo);
-        }
-
-        VkPhysicalDeviceFeatures deviceFeatures{};
-        VkDeviceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-        createInfo.pQueueCreateInfos = queueCreateInfos.data();
-        createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-        createInfo.ppEnabledExtensionNames = requiredExtensions.data();
-
-        if (BEE_ENABLE_VALIDATION_LAYERS) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
-            createInfo.ppEnabledLayerNames = m_validationLayers.data();
-        } else {
-            createInfo.enabledLayerCount = 0;
-        }
-
-        assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
-    }
-
-    // get present queue
-    {
-        vkGetDeviceQueue(m_device, m_graphicsFamily, 0, &m_graphicsQueue);
-    }
+    // get graphics queue
+    vkGetDeviceQueue(m_device, m_graphicsFamily, 0, &m_graphicsQueue);
 }
 
 Context::~Context() {
@@ -263,8 +107,6 @@ Context::~Context() {
         m_window = nullptr;
         glfwTerminate();
     }
-
-
 }
 
 GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* name) {
@@ -415,6 +257,138 @@ GLFWwindow* Context::createWindow(uint32_t width, uint32_t height, const char* n
     return m_window;
 }
 
+void Context::_createInstance(
+    uint32_t extensionCount,
+    const char* const* extensionNames,
+    uint32_t layerCount,
+    const char* const* layerNames,
+    VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo) {
+    // init instance
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "bee";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "bee";
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    // create instance info
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+    createInfo.enabledExtensionCount = extensionCount;
+    createInfo.ppEnabledExtensionNames = extensionNames;
+
+    createInfo.enabledLayerCount = layerCount;
+    createInfo.ppEnabledLayerNames = layerNames;
+    createInfo.pNext = debugCreateInfo;
+
+    assert(vkCreateInstance(&createInfo, nullptr, &m_instance) == VK_SUCCESS);
 }
 
+void Context::_createPhysicalDevice(const std::vector<const char*>& requiredExtensions) {
+    // get physical devices
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+    assert(deviceCount > 0);
+    std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, physicalDevices.data());
+
+    // find "suitable" GPU
+    for (const auto& physicalDevice : physicalDevices) {
+        // check queue family support
+        std::optional<uint32_t> graphicsFamily;
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+        m_queueFamilies.resize(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, m_queueFamilies.data());
+        for (int i = 0; i < m_queueFamilies.size(); i++) {
+            const auto& queueFamily = m_queueFamilies[i];
+
+            // graphics family
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                graphicsFamily = i;
+            }
+        }
+        bool areQueueFamiliesSupported = graphicsFamily.has_value();
+
+        // check extension support
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+        uint32_t extensionMatchCount = 0;
+        for (const auto& availableExtension : availableExtensions) {
+            for (const auto& requiredExtension : requiredExtensions) {
+                if (strcmp(requiredExtension, availableExtension.extensionName) == 0) {
+                    extensionMatchCount++;
+                }
+            }
+        }
+        bool areExtensionsSupported = extensionMatchCount == (uint32_t)requiredExtensions.size();
+
+        // check if the GPU is suitable
+        bool isSuitable = areExtensionsSupported && areQueueFamiliesSupported;
+
+        if (isSuitable) {
+            m_graphicsFamily = graphicsFamily.value();
+            m_physicalDevice = physicalDevice;
+            break;
+        }
+    }
+
+    assert(m_physicalDevice != VK_NULL_HANDLE);
+}
+
+void Context::_createLogicalDevice(const std::vector<const char*>& requiredExtensions,
+                                   std::vector<const char*>& validationLayers) {
+    std::set<uint32_t> uniqueQueueFamilies = {m_graphicsFamily};
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+    float queuePriority = 1.0f;
+    for (uint32_t queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+    createInfo.ppEnabledExtensionNames = requiredExtensions.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    createInfo.ppEnabledLayerNames = validationLayers.data();
+
+    assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
+}
+
+bool Context::_areValidationLayersSupported(const std::vector<const char*>& validationLayers) {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : validationLayers) {
+        bool layerFound = false;
+
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound) {
+            return false;
+        }
+    }
+
+    return true;
+}
 }

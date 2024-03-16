@@ -1,9 +1,7 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -14,4 +12,3 @@
 #include <set>
 #include <stdexcept>
 #include <vector>
-#include <cassert>

@@ -1,19 +1,25 @@
 #pragma once
 
-#include "bee/platform/vulkan/common.h"
+#include "bee/gfx/vulkan/vk_base.h"
 
-namespace bee::vk {
+namespace bee::gfx {
 
-class Context final {
+struct VulkanGraphicsDeviceInfo {
+    const char** extensions = nullptr;
+    uint32_t extensionCount = 0;
+    bool enableValidationLayers = false;
+};
+
+class VulkanGraphicsDevice final {
 public:
-    Context();
-    ~Context();
+    VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info);
+    ~VulkanGraphicsDevice();
 
     GLFWwindow* createWindow(uint32_t width, uint32_t height, const char* name = "");  // TODO: move to a window class
 
-    VkInstance getVkInstance() { return m_instance; }
     VkDevice getVkDevice() { return m_device; }
-    VkPhysicalDevice getVkPhysicalDevice() { return m_physicalDevice; }
+    uint32_t getGraphicsFamily() { return m_graphicsFamily;}
+    uint32_t getPresentFamily() { return m_presentFamily; }
     VkQueue getVkGraphicsQueue() { return m_graphicsQueue; }
     VkQueue getVkPresentQueue() { return m_presentQueue; }
     VkSurfaceKHR getVkSurface() { return m_surface; }
@@ -43,20 +49,6 @@ private:
 
     // window (TODO: move to a window class)
     GLFWwindow* m_window = nullptr;
-
-private:
-    void _createInstance(uint32_t extensionCount,
-                         const char* const* extensionNames,
-                         uint32_t layerCount,
-                         const char* const* layerNames,
-                         VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo);
-
-    void _createPhysicalDevice(const std::vector<const char*>& requiredExtensions);
-
-    void _createLogicalDevice(const std::vector<const char*>& requiredExtensions, std::vector<const char*>& validationLayers);
-    
-    bool _areValidationLayersSupported(const std::vector<const char*>& validationLayers);
-    
 };
 
 }

@@ -3,27 +3,31 @@
 namespace oz::gfx {
 
 VkResult ivkCreateInstance(uint32_t extensionCount,
-                        const char* const* extensionNames,
-                        uint32_t layerCount,
-                        const char* const* layerNames,
-                        VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
-                        VkInstance* outInstance);
+                           const char* const* extensionNames,
+                           uint32_t layerCount,
+                           const char* const* layerNames,
+                           VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
+                           VkInstance* outInstance);
 
 VkResult ivkCreateDebugMessenger(VkInstance instance,
-                              const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
-                              VkDebugUtilsMessengerEXT* outDebugMessenger);
+                                 const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
+                                 VkDebugUtilsMessengerEXT* outDebugMessenger);
 
 bool ivkPickPhysicalDevice(VkInstance instance,
-                        const std::vector<const char*>& requiredExtensions,
-                        VkPhysicalDevice* outPhysicalDevice,
-                        std::vector<VkQueueFamilyProperties>* outQueueFamilies,
-                        uint32_t* outGraphicsFamily);
+                           const std::vector<const char*>& requiredExtensions,
+                           VkPhysicalDevice* outPhysicalDevice,
+                           std::vector<VkQueueFamilyProperties>* outQueueFamilies,
+                           uint32_t* outGraphicsFamily);
 
 VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
-                             const std::vector<uint32_t>& uniqueQueueFamilies,
-                             const std::vector<const char*>& requiredExtensions,
-                             const std::vector<const char*>& validationLayers,
-                             VkDevice* outDevice);
+                                const std::vector<uint32_t>& uniqueQueueFamilies,
+                                const std::vector<const char*>& requiredExtensions,
+                                const std::vector<const char*>& validationLayers,
+                                VkDevice* outDevice);
+
+VkResult ivkCreateCommandPool(VkDevice device,
+                              uint32_t queueFamilyIndex,
+                              VkCommandPool* outCommandPool);
 
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback);
 

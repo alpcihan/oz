@@ -3,11 +3,11 @@
 namespace oz::gfx {
 
 VkResult ivkCreateInstance(uint32_t extensionCount,
-                        const char* const* extensionNames,
-                        uint32_t layerCount,
-                        const char* const* layerNames,
-                        VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
-                        VkInstance* outInstance) {
+                           const char* const* extensionNames,
+                           uint32_t layerCount,
+                           const char* const* layerNames,
+                           VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
+                           VkInstance* outInstance) {
     // app info
     const VkApplicationInfo appInfo{
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -30,8 +30,8 @@ VkResult ivkCreateInstance(uint32_t extensionCount,
 }
 
 VkResult ivkCreateDebugMessenger(VkInstance instance,
-                              const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
-                              VkDebugUtilsMessengerEXT* outDebugMessenger
+                                 const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
+                                 VkDebugUtilsMessengerEXT* outDebugMessenger
 
 ) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -40,10 +40,10 @@ VkResult ivkCreateDebugMessenger(VkInstance instance,
 }
 
 bool ivkPickPhysicalDevice(VkInstance instance,
-                        const std::vector<const char*>& requiredExtensions,
-                        VkPhysicalDevice* outPhysicalDevice,
-                        std::vector<VkQueueFamilyProperties>* outQueueFamilies,
-                        uint32_t* outGraphicsFamily) {
+                           const std::vector<const char*>& requiredExtensions,
+                           VkPhysicalDevice* outPhysicalDevice,
+                           std::vector<VkQueueFamilyProperties>* outQueueFamilies,
+                           uint32_t* outGraphicsFamily) {
     // get physical devices
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -100,10 +100,10 @@ bool ivkPickPhysicalDevice(VkInstance instance,
 }
 
 VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
-                             const std::vector<uint32_t>& uniqueQueueFamilies,
-                             const std::vector<const char*>& requiredExtensions,
-                             const std::vector<const char*>& validationLayers,
-                             VkDevice* outDevice) {
+                                const std::vector<uint32_t>& uniqueQueueFamilies,
+                                const std::vector<const char*>& requiredExtensions,
+                                const std::vector<const char*>& validationLayers,
+                                VkDevice* outDevice) {
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
@@ -132,6 +132,27 @@ VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
     return vkCreateDevice(physicalDevice, &createInfo, nullptr, outDevice);
 }
 
+VkResult ivkCreateCommandPool(VkDevice device,
+                              uint32_t queueFamilyIndex,
+                              VkCommandPool* outCommandPool) {
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    // poolInfo.pNext = nullptr;
+    poolInfo.queueFamilyIndex = queueFamilyIndex;
+
+    return vkCreateCommandPool(device, &poolInfo, nullptr, outCommandPool);
+}
+
+VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
+    return VkDebugUtilsMessengerCreateInfoEXT{
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+        .pfnUserCallback = callback};
+}
+
 std::vector<const char*> ivkPopulateExtensions() {
     return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 }
@@ -142,7 +163,7 @@ std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, 
     if (isValidationLayerEnabled) {
         requiredInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
-    
+
     return requiredInstanceExtensions;
 }
 
@@ -152,14 +173,6 @@ std::vector<const char*> ivkPopulateLayers(bool isValidationLayerEnabled) {
     return isValidationLayerEnabled
                ? ccv{"VK_LAYER_KHRONOS_validation"}
                : ccv{};
-}
-
-VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
-    return VkDebugUtilsMessengerCreateInfoEXT{
-        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = callback};
 }
 
 bool ivkAreLayersSupported(const std::vector<const char*>& layers) {

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
-#include "oz/gfx/vulkan/vk_helpers.h"
 #include "oz/core/Window.h"
+#include "oz/gfx/vulkan/vk_helpers.h"
 
 namespace oz::gfx {
 
@@ -26,7 +26,7 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info)
     const bool enableValidationLayers = info.enableValidationLayers;
 
     const std::vector<const char*> requiredExtensions = ivkPopulateExtensions();
-    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(info.extensions, info.extensionCount, info.enableValidationLayers); 
+    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(info.extensions, info.extensionCount, info.enableValidationLayers);
     const std::vector<const char*> layers = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
@@ -40,11 +40,11 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info)
 
     // create instance
     result = ivkCreateInstance(static_cast<uint32_t>(requiredInstanceExtensions.size()),
-                            requiredInstanceExtensions.data(),
-                            static_cast<uint32_t>(layers.size()),
-                            layers.data(),
-                            enableValidationLayers ? &debugCreateInfo : nullptr,
-                            &m_instance);
+                               requiredInstanceExtensions.data(),
+                               static_cast<uint32_t>(layers.size()),
+                               layers.data(),
+                               enableValidationLayers ? &debugCreateInfo : nullptr,
+                               &m_instance);
     assert(result == VK_SUCCESS);
 
     // create debug messenger
@@ -55,18 +55,18 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info)
 
     // pick physical device
     ivkPickPhysicalDevice(m_instance,
-                       requiredExtensions,
-                       &m_physicalDevice,
-                       &m_queueFamilies,
-                       &m_graphicsFamily);
+                          requiredExtensions,
+                          &m_physicalDevice,
+                          &m_queueFamilies,
+                          &m_graphicsFamily);
     assert(m_physicalDevice != VK_NULL_HANDLE);
 
     // create logical device
     result = ivkCreateLogicalDevice(m_physicalDevice,
-                                 {m_graphicsFamily},
-                                 requiredExtensions,
-                                 layers,
-                                 &m_device);
+                                    {m_graphicsFamily},
+                                    requiredExtensions,
+                                    layers,
+                                    &m_device);
     assert(result == VK_SUCCESS);
 
     // get device queues
@@ -247,6 +247,20 @@ GLFWwindow* VulkanGraphicsDevice::createWindow(uint32_t width, uint32_t height, 
     }
 
     return m_window;
+}
+
+VkCommandPool VulkanGraphicsDevice::createCommandPool() {
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+
+    VkResult result = ivkCreateCommandPool(m_device,
+                                           m_graphicsFamily,
+                                           &commandPool);
+
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+
+    return commandPool;
 }
 
 }

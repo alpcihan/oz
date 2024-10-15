@@ -36,7 +36,7 @@ private:
 
     GLFWwindow* m_window;
 
-    std::unique_ptr<oz::gfx::VulkanGraphicsDevice> m_vkgfx;
+    std::unique_ptr<oz::gfx::VulkanGraphicsDevice> m_vkDevice;
 
     std::vector<VkImageView> m_swapChainImageViews;
 
@@ -68,31 +68,33 @@ private:
         uint32_t extensionCount = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
  
-        m_vkgfx = std::make_unique<oz::gfx::VulkanGraphicsDevice>(oz::gfx::VulkanGraphicsDeviceInfo{
+        m_vkDevice = std::make_unique<oz::gfx::VulkanGraphicsDevice>(oz::gfx::VulkanGraphicsDeviceInfo{
             .extensions = extensions,
             .extensionCount = extensionCount,
             .enableValidationLayers = true
         });
-        m_window = m_vkgfx->createWindow(m_WIDTH, m_HEIGHT, "oz");
+        m_window = m_vkDevice->createWindow(m_WIDTH, m_HEIGHT, "oz");
 
         _createImageViews();
         _createRenderPass();
         _createGraphicsPipeline();
         _createFramebuffers();
-        _createCommandPool();
+        
+        m_commandPool = m_vkDevice->createCommandPool();
+
         _createCommandBuffer();
         _createSyncObjects();
     }
 
     void _createImageViews() {
-        m_swapChainImageViews.resize(m_vkgfx->getSwapChainImages().size());
+        m_swapChainImageViews.resize(m_vkDevice->getSwapChainImages().size());
 
-        for (size_t i = 0; i < m_vkgfx->getSwapChainImages().size(); i++) {
+        for (size_t i = 0; i < m_vkDevice->getSwapChainImages().size(); i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = m_vkgfx->getSwapChainImages()[i];
+            createInfo.image = m_vkDevice->getSwapChainImages()[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = m_vkgfx->getVkSwapchainImageFormat();
+            createInfo.format = m_vkDevice->getVkSwapchainImageFormat();
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -103,7 +105,7 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_vkgfx->getVkDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
+            if (vkCreateImageView(m_vkDevice->getVkDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
         }
@@ -111,7 +113,7 @@ private:
 
     void _createRenderPass() {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = m_vkgfx->getVkSwapchainImageFormat();
+        colorAttachment.format = m_vkDevice->getVkSwapchainImageFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -146,7 +148,7 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_vkgfx->getVkDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(m_vkDevice->getVkDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -196,14 +198,14 @@ private:
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float)m_vkgfx->getVkSwapchainExtent().width;
-        viewport.height = (float)m_vkgfx->getVkSwapchainExtent().height;
+        viewport.width = (float)m_vkDevice->getVkSwapchainExtent().width;
+        viewport.height = (float)m_vkDevice->getVkSwapchainExtent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = m_vkgfx->getVkSwapchainExtent();
+        scissor.extent = m_vkDevice->getVkSwapchainExtent();
 
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -262,7 +264,7 @@ private:
         pipelineLayoutInfo.pushConstantRangeCount = 0;     // optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr;  // optional
 
-        if (vkCreatePipelineLayout(m_vkgfx->getVkDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_vkDevice->getVkDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -284,13 +286,13 @@ private:
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;  // optional to derive new pipeline from the current one
         pipelineInfo.basePipelineIndex = -1;               // optional to derive new pipeline from the current one
 
-        if (vkCreateGraphicsPipelines(m_vkgfx->getVkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(m_vkDevice->getVkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
         // free the shader modules
-        vkDestroyShaderModule(m_vkgfx->getVkDevice(), fragShaderModule, nullptr);
-        vkDestroyShaderModule(m_vkgfx->getVkDevice(), vertShaderModule, nullptr);
+        vkDestroyShaderModule(m_vkDevice->getVkDevice(), fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_vkDevice->getVkDevice(), vertShaderModule, nullptr);
     }
 
     VkShaderModule _createShaderModule(const std::vector<char>& code) {
@@ -300,7 +302,7 @@ private:
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
         VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_vkgfx->getVkDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule(m_vkDevice->getVkDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
 
@@ -318,24 +320,13 @@ private:
             framebufferInfo.renderPass = m_renderPass;
             framebufferInfo.attachmentCount = 1;
             framebufferInfo.pAttachments = attachments;
-            framebufferInfo.width = m_vkgfx->getVkSwapchainExtent().width;
-            framebufferInfo.height = m_vkgfx->getVkSwapchainExtent().height;
+            framebufferInfo.width = m_vkDevice->getVkSwapchainExtent().width;
+            framebufferInfo.height = m_vkDevice->getVkSwapchainExtent().height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_vkgfx->getVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(m_vkDevice->getVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
-        }
-    }
-
-    void _createCommandPool() {
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = m_vkgfx->getGraphicsFamily();
-
-        if (vkCreateCommandPool(m_vkgfx->getVkDevice(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create command pool!");
         }
     }
 
@@ -348,7 +339,7 @@ private:
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(m_vkgfx->getVkDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_vkDevice->getVkDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -368,7 +359,7 @@ private:
         renderPassInfo.renderPass = m_renderPass;
         renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_vkgfx->getVkSwapchainExtent();
+        renderPassInfo.renderArea.extent = m_vkDevice->getVkSwapchainExtent();
         VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
@@ -379,15 +370,15 @@ private:
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = static_cast<float>(m_vkgfx->getVkSwapchainExtent().width);
-        viewport.height = static_cast<float>(m_vkgfx->getVkSwapchainExtent().height);
+        viewport.width = static_cast<float>(m_vkDevice->getVkSwapchainExtent().width);
+        viewport.height = static_cast<float>(m_vkDevice->getVkSwapchainExtent().height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = m_vkgfx->getVkSwapchainExtent();
+        scissor.extent = m_vkDevice->getVkSwapchainExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -405,15 +396,15 @@ private:
             _drawFrame();
         }
 
-        vkDeviceWaitIdle(m_vkgfx->getVkDevice());
+        vkDeviceWaitIdle(m_vkDevice->getVkDevice());
     }
 
     void _drawFrame() {
-        vkWaitForFences(m_vkgfx->getVkDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
-        vkResetFences(m_vkgfx->getVkDevice(), 1, &m_inFlightFences[m_currentFrame]);
+        vkWaitForFences(m_vkDevice->getVkDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+        vkResetFences(m_vkDevice->getVkDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(m_vkgfx->getVkDevice(), m_vkgfx->getVkSwapchain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+        vkAcquireNextImageKHR(m_vkDevice->getVkDevice(), m_vkDevice->getVkSwapchain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
         _recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
@@ -433,7 +424,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(m_vkgfx->getVkGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_vkDevice->getVkGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -442,13 +433,13 @@ private:
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {m_vkgfx->getVkSwapchain()};
+        VkSwapchainKHR swapChains[] = {m_vkDevice->getVkSwapchain()};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;  // optional
 
-        vkQueuePresentKHR(m_vkgfx->getVkPresentQueue(), &presentInfo);
+        vkQueuePresentKHR(m_vkDevice->getVkPresentQueue(), &presentInfo);
 
         m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
     }
@@ -466,9 +457,9 @@ private:
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(m_vkgfx->getVkDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(m_vkgfx->getVkDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_vkgfx->getVkDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+            if (vkCreateSemaphore(m_vkDevice->getVkDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(m_vkDevice->getVkDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(m_vkDevice->getVkDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create synchronization objects for a frame!");
             }
         }
@@ -477,34 +468,34 @@ private:
     void _cleanup() {
         // synchronization objects
         for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(m_vkgfx->getVkDevice(), m_renderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(m_vkgfx->getVkDevice(), m_imageAvailableSemaphores[i], nullptr);
-            vkDestroyFence(m_vkgfx->getVkDevice(), m_inFlightFences[i], nullptr);
+            vkDestroySemaphore(m_vkDevice->getVkDevice(), m_renderFinishedSemaphores[i], nullptr);
+            vkDestroySemaphore(m_vkDevice->getVkDevice(), m_imageAvailableSemaphores[i], nullptr);
+            vkDestroyFence(m_vkDevice->getVkDevice(), m_inFlightFences[i], nullptr);
         }
 
         // command pool
-        vkDestroyCommandPool(m_vkgfx->getVkDevice(), m_commandPool, nullptr);
+        vkDestroyCommandPool(m_vkDevice->getVkDevice(), m_commandPool, nullptr);
 
         // framebuffers
         for (auto framebuffer : m_swapChainFramebuffers) {
-            vkDestroyFramebuffer(m_vkgfx->getVkDevice(), framebuffer, nullptr);
+            vkDestroyFramebuffer(m_vkDevice->getVkDevice(), framebuffer, nullptr);
         }
 
         // pipeline
-        vkDestroyPipeline(m_vkgfx->getVkDevice(), m_graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(m_vkgfx->getVkDevice(), m_pipelineLayout, nullptr);
-        vkDestroyRenderPass(m_vkgfx->getVkDevice(), m_renderPass, nullptr);
+        vkDestroyPipeline(m_vkDevice->getVkDevice(), m_graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(m_vkDevice->getVkDevice(), m_pipelineLayout, nullptr);
+        vkDestroyRenderPass(m_vkDevice->getVkDevice(), m_renderPass, nullptr);
 
         // image views
         for (auto imageView : m_swapChainImageViews) {
-            vkDestroyImageView(m_vkgfx->getVkDevice(), imageView, nullptr);
+            vkDestroyImageView(m_vkDevice->getVkDevice(), imageView, nullptr);
         }
 
         // swap chain
-        vkDestroySwapchainKHR(m_vkgfx -> getVkDevice(), m_vkgfx -> getVkSwapchain(), nullptr);
+        vkDestroySwapchainKHR(m_vkDevice -> getVkDevice(), m_vkDevice -> getVkSwapchain(), nullptr);
 
         // device
-        vkDestroyDevice(m_vkgfx -> getVkDevice(), nullptr);
+        vkDestroyDevice(m_vkDevice -> getVkDevice(), nullptr);
     }
 };
 

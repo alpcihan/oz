@@ -13,12 +13,21 @@ struct VulkanGraphicsDeviceInfo {
 class VulkanGraphicsDevice final {
 public:
     VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info);
+
+    VulkanGraphicsDevice(const VulkanGraphicsDevice&) = delete;
+    VulkanGraphicsDevice& operator=(const VulkanGraphicsDevice&) = delete;
+
+    VulkanGraphicsDevice(VulkanGraphicsDevice&&) = delete;
+    VulkanGraphicsDevice& operator=(VulkanGraphicsDevice&&) = delete;
+
     ~VulkanGraphicsDevice();
 
     GLFWwindow* createWindow(uint32_t width, uint32_t height, const char* name = "");  // TODO: move to a window class
 
+    VkCommandPool createCommandPool();
+
     VkDevice getVkDevice() { return m_device; }
-    uint32_t getGraphicsFamily() { return m_graphicsFamily;}
+    uint32_t getGraphicsFamily() { return m_graphicsFamily; }
     uint32_t getPresentFamily() { return m_presentFamily; }
     VkQueue getVkGraphicsQueue() { return m_graphicsQueue; }
     VkQueue getVkPresentQueue() { return m_presentQueue; }

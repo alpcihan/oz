@@ -1,10 +1,10 @@
 #pragma once
 
-#include "bee/gfx/vulkan/VulkanGraphicsDevice.h"
-#include "bee/gfx/vulkan/vk_helpers.h"
-#include "bee/core/Window.h"
+#include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
+#include "oz/gfx/vulkan/vk_helpers.h"
+#include "oz/core/Window.h"
 
-namespace bee::gfx {
+namespace oz::gfx {
 
 namespace {
 

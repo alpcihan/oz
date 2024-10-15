@@ -1,6 +1,6 @@
-#include "bee/gfx/vulkan/vk_Base.h"
+#include "oz/gfx/vulkan/vk_Base.h"
 
-namespace bee::gfx {
+namespace oz::gfx {
 
 VkResult ivkCreateInstance(uint32_t extensionCount,
                         const char* const* extensionNames,

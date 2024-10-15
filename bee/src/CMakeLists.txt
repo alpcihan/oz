@@ -1,22 +1,22 @@
-set(BEE_LIB_NAME "bee" CACHE STRING "Bee Library Name")
+set(OZ_LIB_NAME "oz" CACHE STRING "oz Library Name")
 
 find_package(Vulkan REQUIRED)
 
-file(GLOB_RECURSE BEE_LIB_SOURCES "./*.cpp")
-add_library(${BEE_LIB_NAME} ${BEE_LIB_SOURCES})
+file(GLOB_RECURSE OZ_LIB_SOURCES "./*.cpp")
+add_library(${OZ_LIB_NAME} ${OZ_LIB_SOURCES})
 
-target_include_directories(${BEE_LIB_NAME}
+target_include_directories(${OZ_LIB_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE
         Vulkan::Vulkan
 )
 
-target_link_libraries(${BEE_LIB_NAME} 
+target_link_libraries(${OZ_LIB_NAME} 
     PUBLIC
         Vulkan::Vulkan
         glfw
         glm
 )
 
-add_dependencies(${BEE_LIB_NAME} BEE_SHADERS)
+add_dependencies(${OZ_LIB_NAME} OZ_SHADERS)

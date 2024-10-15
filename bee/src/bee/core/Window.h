@@ -3,12 +3,12 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "bee/base.h"
+#include "oz/base.h"
 
-namespace bee {
+namespace oz {
 
 struct WindowProps {
-    std::string name = "bee";
+    std::string name = "oz";
     uint32_t width = 1280;
     uint32_t height = 720;
 };

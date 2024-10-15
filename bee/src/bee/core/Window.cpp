@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bee/core/Window.h"
+#include "oz/core/Window.h"
 
-namespace bee {
+namespace oz {
 
 static bool s_isGLFWInitialized = false;
 

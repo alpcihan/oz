@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bee/gfx/vulkan/vk_base.h"
+#include "oz/gfx/vulkan/vk_base.h"
 
-namespace bee::gfx {
+namespace oz::gfx {
 
 struct VulkanGraphicsDeviceInfo {
     const char** extensions = nullptr;

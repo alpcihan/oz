@@ -1,6 +1,6 @@
-#include "bee/gfx/vulkan/vk_helpers.h"
+#include "oz/gfx/vulkan/vk_helpers.h"
 
-namespace bee::gfx {
+namespace oz::gfx {
 
 VkResult ivkCreateInstance(uint32_t extensionCount,
                         const char* const* extensionNames,
@@ -11,9 +11,9 @@ VkResult ivkCreateInstance(uint32_t extensionCount,
     // app info
     const VkApplicationInfo appInfo{
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "bee",
+        .pApplicationName = "oz",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "bee",
+        .pEngineName = "oz",
         .apiVersion = VK_API_VERSION_1_0};
 
     // instance create info

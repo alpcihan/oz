@@ -1,7 +1,7 @@
-[submodule "bee/external/glfw"]
-    path = bee/external/glfw
+[submodule "oz/external/glfw"]
+    path = oz/external/glfw
     url = https://github.com/glfw/glfw.git
 
-[submodule "bee/external/glm"]
-    path = bee/external/glm
+[submodule "oz/external/glm"]
+    path = oz/external/glm
     url = https://github.com/g-truc/glm.git

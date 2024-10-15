@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bee/gfx/vulkan/VulkanGraphicsDevice.h"
+#include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
 
-namespace bee {
+namespace oz {
 namespace vk {
 
 static std::vector<char> readResource(const std::string& filename) {
@@ -36,7 +36,7 @@ private:
 
     GLFWwindow* m_window;
 
-    std::unique_ptr<bee::gfx::VulkanGraphicsDevice> m_vkgfx;
+    std::unique_ptr<oz::gfx::VulkanGraphicsDevice> m_vkgfx;
 
     std::vector<VkImageView> m_swapChainImageViews;
 
@@ -68,12 +68,12 @@ private:
         uint32_t extensionCount = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
  
-        m_vkgfx = std::make_unique<bee::gfx::VulkanGraphicsDevice>(bee::gfx::VulkanGraphicsDeviceInfo{
+        m_vkgfx = std::make_unique<oz::gfx::VulkanGraphicsDevice>(oz::gfx::VulkanGraphicsDeviceInfo{
             .extensions = extensions,
             .extensionCount = extensionCount,
             .enableValidationLayers = true
         });
-        m_window = m_vkgfx->createWindow(m_WIDTH, m_HEIGHT, "bee");
+        m_window = m_vkgfx->createWindow(m_WIDTH, m_HEIGHT, "oz");
 
         _createImageViews();
         _createRenderPass();
@@ -152,8 +152,8 @@ private:
     }
 
     void _createGraphicsPipeline() {
-        auto vertShaderCode = readResource("./../bee/bee/resources/shaders/default_vert.spv");
-        auto fragShaderCode = readResource("./../bee/bee/resources/shaders/default_frag.spv");
+        auto vertShaderCode = readResource("./../oz/oz/resources/shaders/default_vert.spv");
+        auto fragShaderCode = readResource("./../oz/oz/resources/shaders/default_frag.spv");
 
         VkShaderModule vertShaderModule = _createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = _createShaderModule(fragShaderCode);
@@ -509,4 +509,4 @@ private:
 };
 
 }  // namespace vk
-}  // namespace bee
+}  // namespace oz

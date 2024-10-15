@@ -22,4 +22,4 @@ foreach(GLSL ${GLSL_SHADERS})
     list(APPEND SPIRV_SHADERS ${SPIRV})
 endforeach(GLSL)
 
-add_custom_target(BEE_SHADERS DEPENDS ${SPIRV_SHADERS})
+add_custom_target(OZ_SHADERS DEPENDS ${SPIRV_SHADERS})

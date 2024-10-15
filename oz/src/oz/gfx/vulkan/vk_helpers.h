@@ -29,11 +29,18 @@ VkResult ivkCreateCommandPool(VkDevice device,
                               uint32_t queueFamilyIndex,
                               VkCommandPool* outCommandPool);
 
+VkResult ivkAllocateCommandBuffers(VkDevice device,
+                                  VkCommandPool commandPool,
+                                  uint32_t commandBufferCount,
+                                  VkCommandBuffer* outCommandBuffers);
+
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback);
 
 std::vector<const char*> ivkPopulateExtensions();
 
-std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, uint32_t extensionCount, bool isValidationLayerEnabled);
+std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions,
+                                                       uint32_t extensionCount,
+                                                       bool isValidationLayerEnabled);
 
 std::vector<const char*> ivkPopulateLayers(bool isValidationLayerEnabled);
 

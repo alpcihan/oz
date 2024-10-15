@@ -34,9 +34,9 @@ private:
     const int m_MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_currentFrame = 0;
 
-    GLFWwindow* m_window;
-
     std::unique_ptr<oz::gfx::VulkanGraphicsDevice> m_vkDevice;
+
+    GLFWwindow* m_window;
 
     std::vector<VkImageView> m_swapChainImageViews;
 
@@ -52,27 +52,9 @@ private:
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
 
-    struct QueueFamilyIndices {
-        std::optional<uint32_t> graphicsFamily;
-        std::optional<uint32_t> presentFamily;
-
-        bool isComplete() {
-            return graphicsFamily.has_value() && presentFamily.has_value();
-        }
-    };
-
 private:
     void _init() {
-        // glfw
-        glfwInit();
-        uint32_t extensionCount = 0;
-        const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
- 
-        m_vkDevice = std::make_unique<oz::gfx::VulkanGraphicsDevice>(oz::gfx::VulkanGraphicsDeviceInfo{
-            .extensions = extensions,
-            .extensionCount = extensionCount,
-            .enableValidationLayers = true
-        });
+        m_vkDevice = std::make_unique<oz::gfx::VulkanGraphicsDevice>(true);
         m_window = m_vkDevice->createWindow(m_WIDTH, m_HEIGHT, "oz");
 
         _createImageViews();
@@ -81,8 +63,9 @@ private:
         _createFramebuffers();
         
         m_commandPool = m_vkDevice->createCommandPool();
-
-        _createCommandBuffer();
+        m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
+        for(int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) m_commandBuffers[i] = m_vkDevice->createCommandBuffer(m_commandPool);
+        
         _createSyncObjects();
     }
 
@@ -327,20 +310,6 @@ private:
             if (vkCreateFramebuffer(m_vkDevice->getVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
-        }
-    }
-
-    void _createCommandBuffer() {
-        m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(m_vkDevice->getVkDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate command buffers!");
         }
     }
 

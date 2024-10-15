@@ -135,14 +135,25 @@ VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
 VkResult ivkCreateCommandPool(VkDevice device,
                               uint32_t queueFamilyIndex,
                               VkCommandPool* outCommandPool) {
-
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    // poolInfo.pNext = nullptr;
     poolInfo.queueFamilyIndex = queueFamilyIndex;
 
     return vkCreateCommandPool(device, &poolInfo, nullptr, outCommandPool);
+}
+
+VkResult ivkAllocateCommandBuffers(VkDevice device,
+                                   VkCommandPool commandPool,
+                                   uint32_t commandBufferCount,
+                                   VkCommandBuffer* outCommandBuffers) {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = commandBufferCount;
+
+    return vkAllocateCommandBuffers(device, &allocInfo, outCommandBuffers);
 }
 
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {

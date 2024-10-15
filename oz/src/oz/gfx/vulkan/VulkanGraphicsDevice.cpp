@@ -22,11 +22,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 }
 
-VulkanGraphicsDevice::VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info) {
-    const bool enableValidationLayers = info.enableValidationLayers;
+VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
+    // glfw
+    glfwInit();
+    uint32_t extensionCount = 0;
+    const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
 
     const std::vector<const char*> requiredExtensions = ivkPopulateExtensions();
-    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(info.extensions, info.extensionCount, info.enableValidationLayers);
+    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
     const std::vector<const char*> layers = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
@@ -101,7 +104,7 @@ VulkanGraphicsDevice::~VulkanGraphicsDevice() {
     }
 }
 
-GLFWwindow* VulkanGraphicsDevice::createWindow(uint32_t width, uint32_t height, const char* name) {
+GLFWwindow* VulkanGraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char* name) {
     // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -251,16 +254,21 @@ GLFWwindow* VulkanGraphicsDevice::createWindow(uint32_t width, uint32_t height, 
 
 VkCommandPool VulkanGraphicsDevice::createCommandPool() {
     VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkResult result = ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool);
 
-    VkResult result = ivkCreateCommandPool(m_device,
-                                           m_graphicsFamily,
-                                           &commandPool);
-
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to create command pool!");
-    }
+    assert(result == VK_SUCCESS);
 
     return commandPool;
+}
+
+VkCommandBuffer VulkanGraphicsDevice::createCommandBuffer(VkCommandPool commandPool) {
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+    VkResult result = ivkAllocateCommandBuffers(m_device, commandPool, 1, &commandBuffer);
+
+    assert(result == VK_SUCCESS);
+
+    return commandBuffer;
 }
 
 }

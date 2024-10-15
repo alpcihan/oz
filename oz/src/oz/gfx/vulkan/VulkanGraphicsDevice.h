@@ -4,15 +4,9 @@
 
 namespace oz::gfx {
 
-struct VulkanGraphicsDeviceInfo {
-    const char** extensions = nullptr;
-    uint32_t extensionCount = 0;
-    bool enableValidationLayers = false;
-};
-
 class VulkanGraphicsDevice final {
 public:
-    VulkanGraphicsDevice(const VulkanGraphicsDeviceInfo& info);
+    VulkanGraphicsDevice(const bool enableValidationLayers = false);
 
     VulkanGraphicsDevice(const VulkanGraphicsDevice&) = delete;
     VulkanGraphicsDevice& operator=(const VulkanGraphicsDevice&) = delete;
@@ -22,9 +16,9 @@ public:
 
     ~VulkanGraphicsDevice();
 
-    GLFWwindow* createWindow(uint32_t width, uint32_t height, const char* name = "");  // TODO: move to a window class
-
+    GLFWwindow* createWindow(const uint32_t width, const uint32_t height, const char* name = "");  // TODO: move to a window class
     VkCommandPool createCommandPool();
+    VkCommandBuffer createCommandBuffer(VkCommandPool commandPool);
 
     VkDevice getVkDevice() { return m_device; }
     uint32_t getGraphicsFamily() { return m_graphicsFamily; }

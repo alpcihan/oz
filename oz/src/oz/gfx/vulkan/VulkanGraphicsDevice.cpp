@@ -1,5 +1,3 @@
-#pragma once
-
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
 #include "oz/core/Window.h"
 #include "oz/gfx/vulkan/vk_helpers.h"

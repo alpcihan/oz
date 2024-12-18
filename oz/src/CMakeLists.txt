@@ -20,3 +20,6 @@ target_link_libraries(${OZ_LIB_NAME}
 )
 
 add_dependencies(${OZ_LIB_NAME} OZ_SHADERS)
+
+add_executable(main main.cpp)
+target_link_libraries(main ${OZ_LIB_NAME})

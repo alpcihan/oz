@@ -24,7 +24,8 @@ VkResult ivkCreateInstance(uint32_t extensionCount,
         .enabledLayerCount = layerCount,
         .ppEnabledLayerNames = layerNames,
         .enabledExtensionCount = extensionCount,
-        .ppEnabledExtensionNames = extensionNames};
+        .ppEnabledExtensionNames = extensionNames,
+        .flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR};
 
     return vkCreateInstance(&createInfo, nullptr, outInstance);
 }
@@ -165,7 +166,9 @@ VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDeb
 }
 
 std::vector<const char*> ivkPopulateExtensions() {
-    return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    return {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            "VK_KHR_portability_subset",
+            };
 }
 
 std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, uint32_t extensionCount, bool isValidationLayerEnabled) {
@@ -174,6 +177,10 @@ std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, 
     if (isValidationLayerEnabled) {
         requiredInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+
+    // Add the VK_KHR_portability_enumeration extension
+    requiredInstanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    requiredInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
     return requiredInstanceExtensions;
 }

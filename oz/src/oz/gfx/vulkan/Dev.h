@@ -1,6 +1,7 @@
 #pragma once
 
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
+#include "oz/gfx/vulkan/dir_helpers.h"
 
 namespace oz {
 namespace vk {
@@ -137,8 +138,12 @@ private:
     }
 
     void _createGraphicsPipeline() {
-        auto vertShaderCode = readResource("./../oz/oz/resources/shaders/default_vert.spv");
-        auto fragShaderCode = readResource("./../oz/oz/resources/shaders/default_frag.spv");
+        auto buildPath = oz::getBuildPath();
+        auto vertPath = buildPath + "/oz/resources/shaders/default_vert.spv";
+        auto fragPath = buildPath + "/oz/resources/shaders/default_frag.spv";
+
+        auto vertShaderCode = readResource(vertPath);
+        auto fragShaderCode = readResource(fragPath);
 
         VkShaderModule vertShaderModule = _createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = _createShaderModule(fragShaderCode);

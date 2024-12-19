@@ -64,7 +64,7 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
 
     // create logical device
     result = ivkCreateLogicalDevice(m_physicalDevice,
-                                    {m_graphicsFamily},
+                                    {m_graphicsFamily}, // unique queue families (TODO: support multiple queue families)
                                     requiredExtensions,
                                     layers,
                                     &m_device);

@@ -67,6 +67,7 @@ bool ivkPickPhysicalDevice(VkInstance instance,
             // graphics family
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 graphicsFamily = i;
+                break;
             }
         }
         bool areQueueFamiliesSupported = graphicsFamily.has_value();

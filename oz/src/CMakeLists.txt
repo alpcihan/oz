@@ -23,3 +23,6 @@ add_dependencies(${OZ_LIB_NAME} OZ_SHADERS)
 
 add_executable(main main.cpp)
 target_link_libraries(main ${OZ_LIB_NAME})
+
+add_definitions(-DSOURCE_DIR="${CMAKE_SOURCE_DIR}")
+add_definitions(-DBUILD_DIR="${CMAKE_BINARY_DIR}")

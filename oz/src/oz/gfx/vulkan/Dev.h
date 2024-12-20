@@ -273,18 +273,11 @@ class DevApp {
         m_swapChainFramebuffers.resize(m_vkDevice->getSwapChainImageViews().size());
 
         for (size_t i = 0; i < m_vkDevice->getSwapChainImageViews().size(); i++) {
-            VkImageView attachments[] = {m_vkDevice->getSwapChainImageViews()[i]};
+            VkResult result = gfx::ivkCreateFramebuffer(
+                m_vkDevice->getVkDevice(), m_renderPass, m_vkDevice->getVkSwapchainExtent(), m_vkDevice->getSwapChainImageViews()[i],
+                &m_swapChainFramebuffers[i]);
 
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass      = m_renderPass;
-            framebufferInfo.attachmentCount = 1;
-            framebufferInfo.pAttachments    = attachments;
-            framebufferInfo.width           = m_vkDevice->getVkSwapchainExtent().width;
-            framebufferInfo.height          = m_vkDevice->getVkSwapchainExtent().height;
-            framebufferInfo.layers          = 1;
-
-            if (vkCreateFramebuffer(m_vkDevice->getVkDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+            if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
@@ -424,15 +417,15 @@ class DevApp {
         // command pool
         vkDestroyCommandPool(m_vkDevice->getVkDevice(), m_commandPool, nullptr);
 
-        // framebuffers
-        for (auto framebuffer : m_swapChainFramebuffers) {
-            vkDestroyFramebuffer(m_vkDevice->getVkDevice(), framebuffer, nullptr);
-        }
-
         // pipeline
         vkDestroyPipeline(m_vkDevice->getVkDevice(), m_graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(m_vkDevice->getVkDevice(), m_pipelineLayout, nullptr);
         vkDestroyRenderPass(m_vkDevice->getVkDevice(), m_renderPass, nullptr);
+
+        // framebuffers
+        for (auto framebuffer : m_swapChainFramebuffers) {
+            vkDestroyFramebuffer(m_vkDevice->getVkDevice(), framebuffer, nullptr);
+        }
     }
 };
 

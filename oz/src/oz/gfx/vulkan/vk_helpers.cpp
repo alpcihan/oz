@@ -193,6 +193,26 @@ VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkI
     return vkCreateImageView(device, &createInfo, nullptr, outSwapChainImageView);
 }
 
+VkResult ivkCreateFramebuffer(
+    VkDevice device,
+    VkRenderPass renderPass,
+    VkExtent2D swapchainExtent,
+    VkImageView imageView,
+    VkFramebuffer* outFramebuffer) 
+{
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = renderPass;
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = &imageView;
+    framebufferInfo.width = swapchainExtent.width;
+    framebufferInfo.height = swapchainExtent.height;
+    framebufferInfo.layers = 1;
+
+    return vkCreateFramebuffer(device, &framebufferInfo, nullptr, outFramebuffer);
+}
+
+
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool) {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

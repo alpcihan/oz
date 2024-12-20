@@ -10,8 +10,7 @@ VkResult ivkCreateInstance(
     VkDebugUtilsMessengerCreateInfoEXT *debugCreateInfo,
     VkInstance *outInstance);
 
-VkResult ivkCreateDebugMessenger(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT &debugCreateInfo, VkDebugUtilsMessengerEXT *outDebugMessenger);
+VkResult ivkCreateDebugMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT &debugCreateInfo, VkDebugUtilsMessengerEXT *outDebugMessenger);
 
 bool ivkPickPhysicalDevice(
     VkInstance instance,
@@ -39,6 +38,8 @@ VkResult ivkCreateSwapChain(
     VkSwapchainKHR *outSwapChain);
 
 VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageView *outSwapChainImageView);
+
+VkResult ivkCreateFramebuffer(VkDevice device, VkRenderPass renderPass, VkExtent2D swapchainExtent, VkImageView imageView, VkFramebuffer *outFramebuffer);
 
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool);
 

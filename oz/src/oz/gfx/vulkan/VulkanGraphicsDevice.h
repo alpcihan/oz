@@ -22,6 +22,7 @@ class VulkanGraphicsDevice final {
     VkCommandBuffer createCommandBuffer(VkCommandPool commandPool);
 
     VkDevice getVkDevice() const { return m_device; }
+
     uint32_t getGraphicsFamily() const { return m_graphicsFamily; }
     uint32_t getPresentFamily() const { return m_presentFamily; }
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
@@ -33,11 +34,13 @@ class VulkanGraphicsDevice final {
     const std::vector<VkImageView>& getSwapChainImageViews() const {return m_swapChainImageViews; }
     const VkExtent2D &getVkSwapchainExtent() const { return m_swapChainExtent; }
     const std::vector<VkImage> &getSwapChainImages() const { return m_swapChainImages; }
+    // const std::vector<VkFramebuffer> &getSwapChainFrameBuffers() const { return m_swapChainFramebuffers; }
 
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device                 = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool       = VK_NULL_HANDLE;
 
     VkSurfaceKHR m_surface     = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
@@ -45,6 +48,8 @@ class VulkanGraphicsDevice final {
     VkExtent2D m_swapChainExtent;
     std::vector<VkImage> m_swapChainImages;
     std::vector<VkImageView> m_swapChainImageViews;
+    // std::vector<VkFramebuffer> m_swapChainFramebuffers;
+
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
     std::vector<VkQueueFamilyProperties> m_queueFamilies;

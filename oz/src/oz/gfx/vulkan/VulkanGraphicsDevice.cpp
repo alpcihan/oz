@@ -61,6 +61,20 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
 }
 
 VulkanGraphicsDevice::~VulkanGraphicsDevice() {
+    // image views
+    for (auto imageView : m_swapChainImageViews) {
+        vkDestroyImageView(m_device, imageView, nullptr);
+    }
+    m_swapChainImageViews.clear();
+
+    // swap chain
+    vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
+    m_swapChain = VK_NULL_HANDLE;
+
+    // device
+    vkDestroyDevice(m_device, nullptr);
+    m_device = VK_NULL_HANDLE;
+
     // debug utils
     if (m_debugMessenger != VK_NULL_HANDLE) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -200,14 +214,22 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
         }
 
         // swap chain
-        assert(ivkCreateSwapChain(
+        assert(
+            ivkCreateSwapChain(
                 m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform, imageCount, {m_graphicsFamily, m_presentFamily},
                 extent, &m_swapChain) == VK_SUCCESS);
 
-        // swap chain images
+        // images
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
+
+        // image views
+        m_swapChainImageViews.resize(m_swapChainImages.size());
+
+        for (size_t i = 0; i < m_swapChainImages.size(); i++) {
+            assert(ivkCreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat, &m_swapChainImageViews[i]) == VK_SUCCESS);
+        }
     }
 
     return m_window;

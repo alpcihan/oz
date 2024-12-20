@@ -27,8 +27,10 @@ class VulkanGraphicsDevice final {
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
     VkQueue getVkPresentQueue() const { return m_presentQueue; }
     VkSurfaceKHR getVkSurface() const { return m_surface; }
+    
     VkSwapchainKHR getVkSwapchain() const { return m_swapChain; }
     VkFormat getVkSwapchainImageFormat() const { return m_swapChainImageFormat; }
+    const std::vector<VkImageView>& getSwapChainImageViews() const {return m_swapChainImageViews; }
     const VkExtent2D &getVkSwapchainExtent() const { return m_swapChainExtent; }
     const std::vector<VkImage> &getSwapChainImages() const { return m_swapChainImages; }
 

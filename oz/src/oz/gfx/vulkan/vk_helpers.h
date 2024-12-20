@@ -38,6 +38,8 @@ VkResult ivkCreateSwapChain(
     const VkExtent2D &extent,
     VkSwapchainKHR *outSwapChain);
 
+VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageView *outSwapChainImageView);
+
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool);
 
 VkResult ivkAllocateCommandBuffers(VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, VkCommandBuffer *outCommandBuffers);

@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main() {
-    oz::vk::DevApp app;
+    oz::DevApp app;
     try {
         app.run();
     } catch (const std::exception &e) {

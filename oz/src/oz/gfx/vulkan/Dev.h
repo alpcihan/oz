@@ -2,9 +2,9 @@
 
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
 #include "oz/gfx/vulkan/dir_helpers.h"
+#include "oz/gfx/vulkan/vk_helpers.h"
 
 namespace oz {
-namespace vk {
 
 static std::vector<char> readResource(const std::string &filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -39,8 +39,6 @@ class DevApp {
 
     GLFWwindow *m_window;
 
-    std::vector<VkImageView> m_swapChainImageViews;
-
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
@@ -58,7 +56,6 @@ class DevApp {
         m_vkDevice = std::make_unique<oz::gfx::VulkanGraphicsDevice>(true);
         m_window   = m_vkDevice->createWindow(m_WIDTH, m_HEIGHT, "oz");
 
-        _createImageViews();
         _createRenderPass();
         _createGraphicsPipeline();
         _createFramebuffers();
@@ -69,31 +66,6 @@ class DevApp {
             m_commandBuffers[i] = m_vkDevice->createCommandBuffer(m_commandPool);
 
         _createSyncObjects();
-    }
-
-    void _createImageViews() {
-        m_swapChainImageViews.resize(m_vkDevice->getSwapChainImages().size());
-
-        for (size_t i = 0; i < m_vkDevice->getSwapChainImages().size(); i++) {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image                           = m_vkDevice->getSwapChainImages()[i];
-            createInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format                          = m_vkDevice->getVkSwapchainImageFormat();
-            createInfo.components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a                    = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel   = 0;
-            createInfo.subresourceRange.levelCount     = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount     = 1;
-
-            if (vkCreateImageView(m_vkDevice->getVkDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create image views!");
-            }
-        }
     }
 
     void _createRenderPass() {
@@ -298,10 +270,10 @@ class DevApp {
     }
 
     void _createFramebuffers() {
-        m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
+        m_swapChainFramebuffers.resize(m_vkDevice->getSwapChainImageViews().size());
 
-        for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
-            VkImageView attachments[] = {m_swapChainImageViews[i]};
+        for (size_t i = 0; i < m_vkDevice->getSwapChainImageViews().size(); i++) {
+            VkImageView attachments[] = {m_vkDevice->getSwapChainImageViews()[i]};
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -461,19 +433,7 @@ class DevApp {
         vkDestroyPipeline(m_vkDevice->getVkDevice(), m_graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(m_vkDevice->getVkDevice(), m_pipelineLayout, nullptr);
         vkDestroyRenderPass(m_vkDevice->getVkDevice(), m_renderPass, nullptr);
-
-        // image views
-        for (auto imageView : m_swapChainImageViews) {
-            vkDestroyImageView(m_vkDevice->getVkDevice(), imageView, nullptr);
-        }
-
-        // swap chain
-        vkDestroySwapchainKHR(m_vkDevice->getVkDevice(), m_vkDevice->getVkSwapchain(), nullptr);
-
-        // device
-        vkDestroyDevice(m_vkDevice->getVkDevice(), nullptr);
     }
 };
 
-} // namespace vk
 } // namespace oz

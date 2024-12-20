@@ -4,8 +4,8 @@ namespace oz {
 
 static bool s_isGLFWInitialized = false;
 
-Window::Window(const WindowProps& props) {
-    if(!s_isGLFWInitialized) {
+Window::Window(const WindowProps &props) {
+    if (!s_isGLFWInitialized) {
         int result = glfwInit();
         assert(result);
         s_isGLFWInitialized = true;
@@ -16,7 +16,6 @@ Window::Window(const WindowProps& props) {
     m_window = glfwCreateWindow(props.width, props.height, props.name.c_str(), nullptr, nullptr);
 }
 
-Window::~Window() {
-}
+Window::~Window() {}
 
-}
+} // namespace oz

@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 
-
 namespace oz {
 #if defined(_WIN32)
 #include <windows.h>
@@ -13,8 +12,8 @@ std::string getExecutablePath() {
     return std::string(result);
 }
 #elif defined(__linux__)
-#include <unistd.h>
 #include <limits.h>
+#include <unistd.h>
 std::string getExecutablePath() {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
@@ -32,12 +31,8 @@ std::string getExecutablePath() {
 }
 #endif
 
-std::string getBuildPath() {
-    return std::string(BUILD_DIR);
-}
+std::string getBuildPath() { return std::string(BUILD_DIR); }
 
-std::string getSourcePath() {
-    return std::string(SOURCE_DIR);
-}
+std::string getSourcePath() { return std::string(SOURCE_DIR); }
 
-}  // namespace oz
+} // namespace oz

@@ -9,21 +9,19 @@ namespace oz {
 
 struct WindowProps {
     std::string name = "oz";
-    uint32_t width = 1280;
-    uint32_t height = 720;
+    uint32_t width   = 1280;
+    uint32_t height  = 720;
 };
 
 class Window {
-public:
-    Window(const WindowProps& props);
+  public:
+    Window(const WindowProps &props);
     virtual ~Window();
 
-protected:
+  private:
+    GLFWwindow *m_window;
 
-private:
-    GLFWwindow* m_window;
-    
     friend class VulkanGraphicsDevice;
 };
 
-}
+} // namespace oz

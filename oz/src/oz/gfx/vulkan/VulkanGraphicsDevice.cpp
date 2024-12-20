@@ -52,10 +52,8 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
     ivkPickPhysicalDevice(m_instance, requiredExtensions, &m_physicalDevice, &m_queueFamilies, &m_graphicsFamily);
     assert(m_physicalDevice != VK_NULL_HANDLE);
 
-    // create logical device
-    result = ivkCreateLogicalDevice(
-        m_physicalDevice, {m_graphicsFamily}, // unique queue families (TODO: support multiple queue families)
-        requiredExtensions, layers, &m_device);
+    // create logical device (TODO: support multiple queue families)
+    result = ivkCreateLogicalDevice(m_physicalDevice, {m_graphicsFamily}, requiredExtensions, layers, &m_device);
     assert(result == VK_SUCCESS);
 
     // get device queues
@@ -135,6 +133,8 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
                     surfaceFormat = availableFormat;
                 }
             }
+
+            m_swapChainImageFormat = surfaceFormat.format;
         }
 
         // choose present mode
@@ -165,6 +165,8 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
 
                 extent = actualExtent;
             }
+
+            m_swapChainExtent = extent;
         }
 
         // image count
@@ -197,40 +199,15 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
             vkGetDeviceQueue(m_device, m_presentFamily, 0, &m_presentQueue);
         }
 
-        VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface          = m_surface;
-        createInfo.minImageCount    = imageCount;
-        createInfo.imageFormat      = surfaceFormat.format;
-        createInfo.imageColorSpace  = surfaceFormat.colorSpace;
-        createInfo.imageExtent      = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        createInfo.preTransform     = capabilities.currentTransform;
-        createInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode      = presentMode;
-        createInfo.clipped          = VK_TRUE;
-        createInfo.oldSwapchain     = VK_NULL_HANDLE;
+        // swap chain
+        assert(ivkCreateSwapChain(
+                m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform, imageCount, {m_graphicsFamily, m_presentFamily},
+                extent, &m_swapChain) == VK_SUCCESS);
 
-        uint32_t queueFamilyIndices[2] = {m_graphicsFamily, m_presentFamily};
-        if (m_graphicsFamily != m_presentFamily) {
-            createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices   = queueFamilyIndices;
-        } else {
-            createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;       // optional
-            createInfo.pQueueFamilyIndices   = nullptr; // optional
-        }
-
-        assert(vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain) == VK_SUCCESS);
-
+        // swap chain images
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
-
-        m_swapChainImageFormat = surfaceFormat.format;
-        m_swapChainExtent      = extent;
     }
 
     return m_window;

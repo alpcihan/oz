@@ -106,6 +106,7 @@ VkResult ivkCreateLogicalDevice(
     const std::vector<const char *> &requiredExtensions,
     const std::vector<const char *> &validationLayers,
     VkDevice *outDevice) {
+
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
@@ -132,6 +133,45 @@ VkResult ivkCreateLogicalDevice(
         .pEnabledFeatures        = &deviceFeatures};
 
     return vkCreateDevice(physicalDevice, &createInfo, nullptr, outDevice);
+}
+
+VkResult ivkCreateSwapChain(
+    VkDevice device,
+    VkSurfaceKHR surface,
+    VkSurfaceFormatKHR &surfaceFormat,
+    VkPresentModeKHR presentMode,
+    VkSurfaceTransformFlagBitsKHR preTransform,
+    uint32_t imageCount,
+    const uint32_t (&queueFamilyIndices)[2],
+    const VkExtent2D &extent,
+    VkSwapchainKHR *outSwapChain) {
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface          = surface;
+    createInfo.minImageCount    = imageCount;
+    createInfo.imageFormat      = surfaceFormat.format;
+    createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+    createInfo.imageExtent      = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.preTransform     = preTransform;
+    createInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode      = presentMode;
+    createInfo.clipped          = VK_TRUE;
+    createInfo.oldSwapchain     = VK_NULL_HANDLE;
+
+    if (queueFamilyIndices[0] != queueFamilyIndices[1]) {
+        createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices   = queueFamilyIndices;
+    } else {
+        createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;       // optional
+        createInfo.pQueueFamilyIndices   = nullptr; // optional
+    }
+
+    return vkCreateSwapchainKHR(device, &createInfo, nullptr, outSwapChain);
 }
 
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool) {

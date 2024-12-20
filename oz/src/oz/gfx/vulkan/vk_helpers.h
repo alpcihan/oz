@@ -27,6 +27,17 @@ VkResult ivkCreateLogicalDevice(
     const std::vector<const char *> &validationLayers,
     VkDevice *outDevice);
 
+VkResult ivkCreateSwapChain(
+    VkDevice device,
+    VkSurfaceKHR surface,
+    VkSurfaceFormatKHR &surfaceFormat,
+    VkPresentModeKHR presentMode,
+    VkSurfaceTransformFlagBitsKHR preTransform,
+    uint32_t imageCount,
+    const uint32_t (&queueFamilyIndices)[2],
+    const VkExtent2D &extent,
+    VkSwapchainKHR *outSwapChain);
+
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool);
 
 VkResult ivkAllocateCommandBuffers(VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, VkCommandBuffer *outCommandBuffers);

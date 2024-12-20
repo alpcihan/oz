@@ -1,4 +1,4 @@
-#include "oz/core/Window.h"
+#include "oz/core/window/Window.h"
 
 namespace oz {
 

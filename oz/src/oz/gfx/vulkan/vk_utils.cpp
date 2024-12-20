@@ -1,4 +1,4 @@
-#include "oz/gfx/vulkan/vk_helpers.h"
+#include "oz/gfx/vulkan/vk_utils.h"
 
 namespace oz::gfx {
 

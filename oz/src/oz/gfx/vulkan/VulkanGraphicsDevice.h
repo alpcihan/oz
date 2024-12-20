@@ -18,8 +18,7 @@ class VulkanGraphicsDevice final {
 
     // TODO: move to a window class
     GLFWwindow *createWindow(const uint32_t width, const uint32_t height, const char *name = "");
-    VkCommandPool createCommandPool();
-    VkCommandBuffer createCommandBuffer(VkCommandPool commandPool);
+    VkCommandBuffer createCommandBuffer();
 
     VkDevice getVkDevice() const { return m_device; }
 
@@ -40,7 +39,7 @@ class VulkanGraphicsDevice final {
     VkInstance m_instance             = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device                 = VK_NULL_HANDLE;
-    VkCommandPool m_commandPool       = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool       = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
     VkSurfaceKHR m_surface     = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
@@ -60,6 +59,10 @@ class VulkanGraphicsDevice final {
 
     // window (TODO: move to a window class)
     GLFWwindow *m_window = nullptr;
+  
+  private:
+    VkCommandPool _createCommandPool();
+
 };
 
 } // namespace oz::gfx

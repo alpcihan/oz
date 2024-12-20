@@ -1,6 +1,6 @@
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
-#include "oz/core/Window.h"
-#include "oz/gfx/vulkan/vk_helpers.h"
+#include "oz/core/window/Window.h"
+#include "oz/gfx/vulkan/vk_utils.h"
 
 namespace oz::gfx {
 
@@ -58,9 +58,16 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
 
     // get device queues
     vkGetDeviceQueue(m_device, m_graphicsFamily, 0, &m_graphicsQueue);
+
+    // create a command pool
+    m_commandPool = _createCommandPool();
 }
 
 VulkanGraphicsDevice::~VulkanGraphicsDevice() {
+    // command pool
+    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    m_commandPool = VK_NULL_HANDLE;
+
     // image views
     for (auto imageView : m_swapChainImageViews) {
         vkDestroyImageView(m_device, imageView, nullptr);
@@ -235,7 +242,7 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
     return m_window;
 }
 
-VkCommandPool VulkanGraphicsDevice::createCommandPool() {
+VkCommandPool VulkanGraphicsDevice::_createCommandPool() {
     VkCommandPool commandPool = VK_NULL_HANDLE;
     VkResult result           = ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool);
 
@@ -244,10 +251,10 @@ VkCommandPool VulkanGraphicsDevice::createCommandPool() {
     return commandPool;
 }
 
-VkCommandBuffer VulkanGraphicsDevice::createCommandBuffer(VkCommandPool commandPool) {
+VkCommandBuffer VulkanGraphicsDevice::createCommandBuffer() {
     VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
-    VkResult result = ivkAllocateCommandBuffers(m_device, commandPool, 1, &commandBuffer);
+    VkResult result = ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 
     assert(result == VK_SUCCESS);
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <string>
+#include "oz/base.h"
 
-namespace oz {
+namespace oz::file {
+    
 #if defined(_WIN32)
 #include <windows.h>
 std::string getExecutablePath() {

@@ -1,26 +1,10 @@
 #pragma once
 
 #include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
-#include "oz/gfx/vulkan/dir_helpers.h"
-#include "oz/gfx/vulkan/vk_helpers.h"
+#include "oz/gfx/vulkan/vk_utils.h"
+#include "oz/core/file/file.h"
 
 namespace oz {
-
-static std::vector<char> readResource(const std::string &filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file: " + filename);
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    return buffer;
-}
 
 class DevApp {
   public:
@@ -44,7 +28,6 @@ class DevApp {
     VkPipeline m_graphicsPipeline;
 
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
-    VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -60,10 +43,9 @@ class DevApp {
         _createGraphicsPipeline();
         _createFramebuffers();
 
-        m_commandPool = m_vkDevice->createCommandPool();
         m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
         for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
-            m_commandBuffers[i] = m_vkDevice->createCommandBuffer(m_commandPool);
+            m_commandBuffers[i] = m_vkDevice->createCommandBuffer();
 
         _createSyncObjects();
     }
@@ -111,12 +93,12 @@ class DevApp {
     }
 
     void _createGraphicsPipeline() {
-        auto buildPath = oz::getBuildPath();
+        auto buildPath = file::getBuildPath();
         auto vertPath  = buildPath + "/oz/resources/shaders/default_vert.spv";
         auto fragPath  = buildPath + "/oz/resources/shaders/default_frag.spv";
 
-        auto vertShaderCode = readResource(vertPath);
-        auto fragShaderCode = readResource(fragPath);
+        auto vertShaderCode = file::readFile(vertPath);
+        auto fragShaderCode = file::readFile(fragPath);
 
         VkShaderModule vertShaderModule = _createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = _createShaderModule(fragShaderCode);
@@ -413,9 +395,6 @@ class DevApp {
             vkDestroySemaphore(m_vkDevice->getVkDevice(), m_imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(m_vkDevice->getVkDevice(), m_inFlightFences[i], nullptr);
         }
-
-        // command pool
-        vkDestroyCommandPool(m_vkDevice->getVkDevice(), m_commandPool, nullptr);
 
         // pipeline
         vkDestroyPipeline(m_vkDevice->getVkDevice(), m_graphicsPipeline, nullptr);

@@ -9,13 +9,13 @@ struct ShaderData {
     ShaderStage stage;
 
     VkShaderModule vkShaderModule;
-    VkPipelineShaderStageCreateInfo stageInfo;
+    VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo;
 };
 
 struct RenderPassData {
-    VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_graphicsPipeline;
+    VkRenderPass vkRenderPass;
+    VkPipelineLayout vkPipelineLayout;
+    VkPipeline vkGraphicsPipeline;
 };
 
 } // namespace oz::gfx::vk

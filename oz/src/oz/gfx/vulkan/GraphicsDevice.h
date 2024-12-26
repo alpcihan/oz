@@ -19,21 +19,23 @@ class GraphicsDevice final {
   public:
     GLFWwindow *createWindow(const uint32_t width, const uint32_t height, const char *name = ""); // TODO: move to a window class
     VkCommandBuffer createCommandBuffer();
-    Shader createShader(const std::string& path, ShaderStage stage);
+    Shader createShader(const std::string &path, ShaderStage stage);
+    RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader);
 
     VkDevice getVkDevice() const { return m_device; }
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
     VkQueue getVkPresentQueue() const { return m_presentQueue; }
     VkSurfaceKHR getVkSurface() const { return m_surface; }
-    
+
     VkSwapchainKHR getVkSwapchain() const { return m_swapChain; }
     VkFormat getVkSwapchainImageFormat() const { return m_swapChainImageFormat; }
-    const std::vector<VkImageView>& getSwapChainImageViews() const {return m_swapChainImageViews; }
+    const std::vector<VkImageView> &getSwapChainImageViews() const { return m_swapChainImageViews; }
     const VkExtent2D &getVkSwapchainExtent() const { return m_swapChainExtent; }
     const std::vector<VkImage> &getSwapChainImages() const { return m_swapChainImages; }
     // const std::vector<VkFramebuffer> &getSwapChainFrameBuffers() const { return m_swapChainFramebuffers; }
 
     void free(Shader shader);
+    void free(RenderPass renderPass);
 
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
@@ -59,10 +61,9 @@ class GraphicsDevice final {
 
     // window (TODO: move to a window class)
     GLFWwindow *m_window = nullptr;
-  
+
   private:
     VkCommandPool _createCommandPool();
-
 };
 
 } // namespace oz::gfx::vk

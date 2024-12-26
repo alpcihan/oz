@@ -6,11 +6,10 @@
 namespace oz::gfx::vk {
 
 namespace {
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-    void *pUserData) {
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                    void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
     }
@@ -26,21 +25,23 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     uint32_t extensionCount = 0;
     const char **extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    const std::vector<const char *> requiredExtensions         = ivkPopulateExtensions();
-    const std::vector<const char *> requiredInstanceExtensions = ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
-    const std::vector<const char *> layers                     = ivkPopulateLayers(enableValidationLayers);
+    const std::vector<const char *> requiredExtensions = ivkPopulateExtensions();
+    const std::vector<const char *> requiredInstanceExtensions =
+        ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
+    const std::vector<const char *> layers = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
 
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo =
-        enableValidationLayers ? ivkPopulateDebugMessengerCreateInfo(debugCallback) : VkDebugUtilsMessengerCreateInfoEXT{};
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = enableValidationLayers
+                                                             ? ivkPopulateDebugMessengerCreateInfo(debugCallback)
+                                                             : VkDebugUtilsMessengerCreateInfoEXT{};
 
     VkResult result;
 
     // create instance
-    result = ivkCreateInstance(
-        static_cast<uint32_t>(requiredInstanceExtensions.size()), requiredInstanceExtensions.data(), static_cast<uint32_t>(layers.size()), layers.data(),
-        enableValidationLayers ? &debugCreateInfo : nullptr, &m_instance);
+    result = ivkCreateInstance(static_cast<uint32_t>(requiredInstanceExtensions.size()),
+                               requiredInstanceExtensions.data(), static_cast<uint32_t>(layers.size()), layers.data(),
+                               enableValidationLayers ? &debugCreateInfo : nullptr, &m_instance);
     assert(result == VK_SUCCESS);
 
     // create debug messenger
@@ -85,7 +86,8 @@ GraphicsDevice::~GraphicsDevice() {
 
     // debug utils
     if (m_debugMessenger != VK_NULL_HANDLE) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
+        auto func =
+            (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
             func(m_instance, m_debugMessenger, nullptr);
         }
@@ -141,7 +143,8 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
             vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount, nullptr);
             if (presentModeCount != 0) {
                 presentModes.resize(presentModeCount);
-                vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount, presentModes.data());
+                vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount,
+                                                          presentModes.data());
             }
         }
 
@@ -151,7 +154,8 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
             surfaceFormat = formats[0];
 
             for (const auto &availableFormat : formats) {
-                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+                    availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                     surfaceFormat = availableFormat;
                 }
             }
@@ -182,8 +186,10 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
 
                 VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-                actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-                actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+                actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+                                                 capabilities.maxImageExtent.width);
+                actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+                                                 capabilities.maxImageExtent.height);
 
                 extent = actualExtent;
             }
@@ -222,10 +228,8 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
         }
 
         // swap chain
-        assert(
-            ivkCreateSwapChain(
-                m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform, imageCount, {m_graphicsFamily, m_presentFamily}, extent,
-                &m_swapChain) == VK_SUCCESS);
+        assert(ivkCreateSwapChain(m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform,
+                                  imageCount, {m_graphicsFamily, m_presentFamily}, extent, &m_swapChain) == VK_SUCCESS);
 
         // images
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
@@ -236,7 +240,8 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
         m_swapChainImageViews.resize(m_swapChainImages.size());
 
         for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-            assert(ivkCreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat, &m_swapChainImageViews[i]) == VK_SUCCESS);
+            assert(ivkCreateImageView(m_device, m_swapChainImages[i], m_swapChainImageFormat,
+                                      &m_swapChainImageViews[i]) == VK_SUCCESS);
         }
     }
 
@@ -274,17 +279,49 @@ Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) 
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
 
-    Shader shaderData          = new ShaderData;
-    shaderData->stage          = stage;
-    shaderData->vkShaderModule = shaderModule;
-    shaderData->stageInfo      = shaderStageInfo;
+
+    Shader shaderData                           = new ShaderData;
+    shaderData->stage                           = stage;
+    shaderData->vkShaderModule                  = shaderModule;
+    shaderData->vkPipelineShaderStageCreateInfo = shaderStageInfo;
 
     return shaderData;
+}
+
+RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader) {
+    VkRenderPass vkRenderPass;
+    assert(ivkCreateRenderPass(m_device, m_swapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
+
+    VkPipelineLayout vkPipelineLayout;
+    assert(ivkCreatePipelineLayout(m_device, &vkPipelineLayout) == VK_SUCCESS);
+
+    VkPipeline vkGraphicsPipeline;
+    assert(ivkCreateGraphicsPipeline(
+               m_device,
+               std::array<VkPipelineShaderStageCreateInfo, 2>{vertexShader->vkPipelineShaderStageCreateInfo,
+                                                              fragmentShader->vkPipelineShaderStageCreateInfo}
+                   .data(),
+               2, m_swapChainExtent, vkPipelineLayout, vkRenderPass, &vkGraphicsPipeline) == VK_SUCCESS);
+
+
+    RenderPass renderPass          = new RenderPassData;
+    renderPass->vkRenderPass       = vkRenderPass;
+    renderPass->vkPipelineLayout   = vkPipelineLayout;
+    renderPass->vkGraphicsPipeline = vkGraphicsPipeline;
+
+    return renderPass;
 }
 
 void GraphicsDevice::free(Shader shader) {
     vkDestroyShaderModule(m_device, shader->vkShaderModule, nullptr);
     delete shader;
+}
+
+void GraphicsDevice::free(RenderPass renderPass) {
+    vkDestroyPipeline(m_device, renderPass->vkGraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_device, renderPass->vkPipelineLayout, nullptr);
+    vkDestroyRenderPass(m_device, renderPass->vkRenderPass, nullptr);
+    delete renderPass;
 }
 
 VkCommandPool GraphicsDevice::_createCommandPool() {

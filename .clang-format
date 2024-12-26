@@ -1,11 +1,11 @@
 Language: Cpp
 IndentWidth: 4
 # ContinuationIndentWidth: 4
-ColumnLimit: 160
+ColumnLimit: 120
 
 BinPackParameters: false
 
-AlignAfterOpenBracket: AlwaysBreak
+#AlignAfterOpenBracket: AlwaysBreak
 AllowAllParametersOfDeclarationOnNextLine: true
 AlignEscapedNewlines: Left
 AlignAccessSpecifier: Left

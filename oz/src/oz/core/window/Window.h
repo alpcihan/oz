@@ -21,7 +21,7 @@ class Window {
   private:
     GLFWwindow *m_window;
 
-    friend class VulkanGraphicsDevice;
+    friend class GraphicsDevice;
 };
 
 } // namespace oz

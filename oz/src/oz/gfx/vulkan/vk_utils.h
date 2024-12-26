@@ -1,6 +1,8 @@
+#pragma once
+
 #include "oz/gfx/vulkan/vk_base.h"
 
-namespace oz::gfx {
+namespace oz::gfx::vk {
 
 VkResult ivkCreateInstance(
     uint32_t extensionCount,

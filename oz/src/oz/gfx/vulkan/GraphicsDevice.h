@@ -2,28 +2,26 @@
 
 #include "oz/gfx/vulkan/vk_base.h"
 
-namespace oz::gfx {
+namespace oz::gfx::vk {
 
-class VulkanGraphicsDevice final {
+class GraphicsDevice final {
   public:
-    VulkanGraphicsDevice(const bool enableValidationLayers = false);
+    GraphicsDevice(const bool enableValidationLayers = false);
 
-    VulkanGraphicsDevice(const VulkanGraphicsDevice &)            = delete;
-    VulkanGraphicsDevice &operator=(const VulkanGraphicsDevice &) = delete;
+    GraphicsDevice(const GraphicsDevice &)            = delete;
+    GraphicsDevice &operator=(const GraphicsDevice &) = delete;
 
-    VulkanGraphicsDevice(VulkanGraphicsDevice &&)            = delete;
-    VulkanGraphicsDevice &operator=(VulkanGraphicsDevice &&) = delete;
+    GraphicsDevice(GraphicsDevice &&)            = delete;
+    GraphicsDevice &operator=(GraphicsDevice &&) = delete;
 
-    ~VulkanGraphicsDevice();
+    ~GraphicsDevice();
 
-    // TODO: move to a window class
-    GLFWwindow *createWindow(const uint32_t width, const uint32_t height, const char *name = "");
+  public:
+    GLFWwindow *createWindow(const uint32_t width, const uint32_t height, const char *name = ""); // TODO: move to a window class
     VkCommandBuffer createCommandBuffer();
+    Shader createShader(const std::string& path, ShaderStage stage);
 
     VkDevice getVkDevice() const { return m_device; }
-
-    uint32_t getGraphicsFamily() const { return m_graphicsFamily; }
-    uint32_t getPresentFamily() const { return m_presentFamily; }
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
     VkQueue getVkPresentQueue() const { return m_presentQueue; }
     VkSurfaceKHR getVkSurface() const { return m_surface; }
@@ -65,4 +63,4 @@ class VulkanGraphicsDevice final {
 
 };
 
-} // namespace oz::gfx
+} // namespace oz::gfx::vk

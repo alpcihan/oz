@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
+#include "oz/gfx/vulkan/GraphicsDevice.h"
 #include "oz/gfx/vulkan/vk_utils.h"
 #include "oz/core/file/file.h"
 
@@ -19,7 +19,7 @@ class DevApp {
     const int m_MAX_FRAMES_IN_FLIGHT = 2;
     uint32_t m_currentFrame          = 0;
 
-    std::unique_ptr<oz::gfx::VulkanGraphicsDevice> m_vkDevice;
+    std::unique_ptr<oz::gfx::vk::GraphicsDevice> m_vkDevice;
 
     GLFWwindow *m_window;
 
@@ -36,7 +36,7 @@ class DevApp {
 
   private:
     void _init() {
-        m_vkDevice = std::make_unique<oz::gfx::VulkanGraphicsDevice>(true);
+        m_vkDevice = std::make_unique<oz::gfx::vk::GraphicsDevice>(true);
         m_window   = m_vkDevice->createWindow(m_WIDTH, m_HEIGHT, "oz");
 
         _createRenderPass();
@@ -92,7 +92,7 @@ class DevApp {
         }
     }
 
-    void _createGraphicsPipeline() {
+    void _createGraphicsPipeline() {        
         auto buildPath = file::getBuildPath();
         auto vertPath  = buildPath + "/oz/resources/shaders/default_vert.spv";
         auto fragPath  = buildPath + "/oz/resources/shaders/default_frag.spv";
@@ -255,7 +255,7 @@ class DevApp {
         m_swapChainFramebuffers.resize(m_vkDevice->getSwapChainImageViews().size());
 
         for (size_t i = 0; i < m_vkDevice->getSwapChainImageViews().size(); i++) {
-            VkResult result = gfx::ivkCreateFramebuffer(
+            VkResult result = gfx::vk::ivkCreateFramebuffer(
                 m_vkDevice->getVkDevice(), m_renderPass, m_vkDevice->getVkSwapchainExtent(), m_vkDevice->getSwapChainImageViews()[i],
                 &m_swapChainFramebuffers[i]);
 

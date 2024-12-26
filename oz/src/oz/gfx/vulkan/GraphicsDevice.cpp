@@ -1,8 +1,9 @@
-#include "oz/gfx/vulkan/VulkanGraphicsDevice.h"
-#include "oz/core/window/Window.h"
+#include "oz/gfx/vulkan/GraphicsDevice.h"
+#include "oz/core/file/file.h"
 #include "oz/gfx/vulkan/vk_utils.h"
+#include "oz/gfx/vulkan/vk_data.h"
 
-namespace oz::gfx {
+namespace oz::gfx::vk {
 
 namespace {
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -19,7 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 } // namespace
 
-VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
+GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // glfw
     glfwInit();
     uint32_t extensionCount = 0;
@@ -38,8 +39,8 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
 
     // create instance
     result = ivkCreateInstance(
-        static_cast<uint32_t>(requiredInstanceExtensions.size()), requiredInstanceExtensions.data(), static_cast<uint32_t>(layers.size()),
-        layers.data(), enableValidationLayers ? &debugCreateInfo : nullptr, &m_instance);
+        static_cast<uint32_t>(requiredInstanceExtensions.size()), requiredInstanceExtensions.data(), static_cast<uint32_t>(layers.size()), layers.data(),
+        enableValidationLayers ? &debugCreateInfo : nullptr, &m_instance);
     assert(result == VK_SUCCESS);
 
     // create debug messenger
@@ -63,7 +64,7 @@ VulkanGraphicsDevice::VulkanGraphicsDevice(const bool enableValidationLayers) {
     m_commandPool = _createCommandPool();
 }
 
-VulkanGraphicsDevice::~VulkanGraphicsDevice() {
+GraphicsDevice::~GraphicsDevice() {
     // command pool
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     m_commandPool = VK_NULL_HANDLE;
@@ -109,7 +110,7 @@ VulkanGraphicsDevice::~VulkanGraphicsDevice() {
     }
 }
 
-GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char *name) {
+GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char *name) {
     // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -223,8 +224,8 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
         // swap chain
         assert(
             ivkCreateSwapChain(
-                m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform, imageCount, {m_graphicsFamily, m_presentFamily},
-                extent, &m_swapChain) == VK_SUCCESS);
+                m_device, m_surface, surfaceFormat, presentMode, capabilities.currentTransform, imageCount, {m_graphicsFamily, m_presentFamily}, extent,
+                &m_swapChain) == VK_SUCCESS);
 
         // images
         vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
@@ -242,16 +243,7 @@ GLFWwindow *VulkanGraphicsDevice::createWindow(const uint32_t width, const uint3
     return m_window;
 }
 
-VkCommandPool VulkanGraphicsDevice::_createCommandPool() {
-    VkCommandPool commandPool = VK_NULL_HANDLE;
-    VkResult result           = ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool);
-
-    assert(result == VK_SUCCESS);
-
-    return commandPool;
-}
-
-VkCommandBuffer VulkanGraphicsDevice::createCommandBuffer() {
+VkCommandBuffer GraphicsDevice::createCommandBuffer() {
     VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
     VkResult result = ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
@@ -261,4 +253,35 @@ VkCommandBuffer VulkanGraphicsDevice::createCommandBuffer() {
     return commandBuffer;
 }
 
-} // namespace oz::gfx
+Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) {
+    std::string absolutePath = file::getBuildPath() + "/oz/resources/shaders/";
+    absolutePath += path;
+    auto code = file::readFile(absolutePath);
+
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    ShaderData* shaderData = new ShaderData;
+    shaderData->stage = stage;
+    shaderData->vkShaderModule = shaderModule;
+
+    return shaderData;
+}
+
+VkCommandPool GraphicsDevice::_createCommandPool() {
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkResult result           = ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool);
+
+    assert(result == VK_SUCCESS);
+
+    return commandPool;
+}
+
+} // namespace oz::gfx::vk

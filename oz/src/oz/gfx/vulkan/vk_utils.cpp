@@ -1,6 +1,6 @@
 #include "oz/gfx/vulkan/vk_utils.h"
 
-namespace oz::gfx {
+namespace oz::gfx::vk {
 
 VkResult ivkCreateInstance(
     uint32_t extensionCount,
@@ -218,7 +218,7 @@ VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkComm
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndex;
-
+    
     return vkCreateCommandPool(device, &poolInfo, nullptr, outCommandPool);
 }
 

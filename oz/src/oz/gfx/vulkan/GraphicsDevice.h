@@ -33,6 +33,8 @@ class GraphicsDevice final {
     const std::vector<VkImage> &getSwapChainImages() const { return m_swapChainImages; }
     // const std::vector<VkFramebuffer> &getSwapChainFrameBuffers() const { return m_swapChainFramebuffers; }
 
+    void free(Shader shader);
+
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;

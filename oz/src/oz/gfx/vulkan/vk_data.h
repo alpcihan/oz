@@ -6,8 +6,16 @@
 namespace oz::gfx::vk {
 
 struct ShaderData {
-    VkShaderModule vkShaderModule;
     ShaderStage stage;
+
+    VkShaderModule vkShaderModule;
+    VkPipelineShaderStageCreateInfo stageInfo;
+};
+
+struct RenderPassData {
+    VkRenderPass m_renderPass;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_graphicsPipeline;
 };
 
 } // namespace oz::gfx::vk

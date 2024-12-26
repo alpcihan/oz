@@ -3,6 +3,7 @@
 #include "oz/gfx/vulkan/GraphicsDevice.h"
 #include "oz/gfx/vulkan/vk_utils.h"
 #include "oz/core/file/file.h"
+#include "oz/gfx/vulkan/vk_data.h" // TODO: remove
 
 namespace oz {
 
@@ -92,30 +93,11 @@ class DevApp {
         }
     }
 
-    void _createGraphicsPipeline() {        
-        auto buildPath = file::getBuildPath();
-        auto vertPath  = buildPath + "/oz/resources/shaders/default_vert.spv";
-        auto fragPath  = buildPath + "/oz/resources/shaders/default_frag.spv";
+    void _createGraphicsPipeline() {     
+        gfx::vk::Shader vertShader = m_vkDevice->createShader("default_vert.spv", gfx::vk::ShaderStage::Vertex);
+        gfx::vk::Shader fragShader = m_vkDevice->createShader("default_frag.spv", gfx::vk::ShaderStage::Fragment);
 
-        auto vertShaderCode = file::readFile(vertPath);
-        auto fragShaderCode = file::readFile(fragPath);
-
-        VkShaderModule vertShaderModule = _createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = _createShaderModule(fragShaderCode);
-
-        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage  = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName  = "main";
-
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        fragShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName  = "main";
-
-        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShader->stageInfo, fragShader->stageInfo};
 
         std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
@@ -233,22 +215,8 @@ class DevApp {
         }
 
         // free the shader modules
-        vkDestroyShaderModule(m_vkDevice->getVkDevice(), fragShaderModule, nullptr);
-        vkDestroyShaderModule(m_vkDevice->getVkDevice(), vertShaderModule, nullptr);
-    }
-
-    VkShaderModule _createShaderModule(const std::vector<char> &code) {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_vkDevice->getVkDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
+        m_vkDevice->free(vertShader);
+        m_vkDevice->free(fragShader);
     }
 
     void _createFramebuffers() {

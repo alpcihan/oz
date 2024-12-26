@@ -1,7 +1,7 @@
 #include "oz/gfx/vulkan/GraphicsDevice.h"
 #include "oz/core/file/file.h"
-#include "oz/gfx/vulkan/vk_utils.h"
 #include "oz/gfx/vulkan/vk_data.h"
+#include "oz/gfx/vulkan/vk_utils.h"
 
 namespace oz::gfx::vk {
 
@@ -268,11 +268,23 @@ Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) 
         throw std::runtime_error("failed to create shader module!");
     }
 
-    ShaderData* shaderData = new ShaderData;
-    shaderData->stage = stage;
+    VkPipelineShaderStageCreateInfo shaderStageInfo{};
+    shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageInfo.stage  = (VkShaderStageFlagBits)stage;
+    shaderStageInfo.module = shaderModule;
+    shaderStageInfo.pName  = "main";
+
+    Shader shaderData          = new ShaderData;
+    shaderData->stage          = stage;
     shaderData->vkShaderModule = shaderModule;
+    shaderData->stageInfo      = shaderStageInfo;
 
     return shaderData;
+}
+
+void GraphicsDevice::free(Shader shader) {
+    vkDestroyShaderModule(m_device, shader->vkShaderModule, nullptr);
+    delete shader;
 }
 
 VkCommandPool GraphicsDevice::_createCommandPool() {

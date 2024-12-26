@@ -10,9 +10,36 @@ namespace oz {
 class DevApp {
   public:
     void run() {
-        _init();
-        _mainLoop();
-        _cleanup();
+        // init
+        m_device = std::make_unique<gfx::vk::GraphicsDevice>(true);
+        m_window = m_device->createWindow(800, 600, "oz");
+
+        gfx::vk::Shader vertShader = m_device->createShader("default_vert.spv", gfx::vk::ShaderStage::Vertex);
+        gfx::vk::Shader fragShader = m_device->createShader("default_frag.spv", gfx::vk::ShaderStage::Fragment);
+
+        m_renderPass = m_device->createRenderPass(vertShader, fragShader);
+        m_device->free(vertShader);
+        m_device->free(fragShader);
+
+        for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
+            m_commandBuffers.push_back(m_device->createCommandBuffer());
+
+        _createSyncObjects();
+
+        // main loop
+        while (!glfwWindowShouldClose(m_window)) {
+            glfwPollEvents();
+            _drawFrame();
+        }
+        vkDeviceWaitIdle(m_device->getVkDevice());
+        
+        // cleanup
+        for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroySemaphore(m_device->getVkDevice(), m_renderFinishedSemaphores[i], nullptr);
+            vkDestroySemaphore(m_device->getVkDevice(), m_imageAvailableSemaphores[i], nullptr);
+            vkDestroyFence(m_device->getVkDevice(), m_inFlightFences[i], nullptr);
+        }
+        m_device->free(m_renderPass);
     }
 
   private:
@@ -32,41 +59,6 @@ class DevApp {
     std::vector<VkFence> m_inFlightFences;
 
   private:
-    void _init() {
-        m_device = std::make_unique<gfx::vk::GraphicsDevice>(true);
-        m_window = m_device->createWindow(800, 600, "oz");
-
-        gfx::vk::Shader vertShader = m_device->createShader("default_vert.spv", gfx::vk::ShaderStage::Vertex);
-        gfx::vk::Shader fragShader = m_device->createShader("default_frag.spv", gfx::vk::ShaderStage::Fragment);
-
-        m_renderPass = m_device->createRenderPass(vertShader, fragShader);
-
-        m_device->free(vertShader);
-        m_device->free(fragShader);
-
-        for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
-            m_commandBuffers.push_back(m_device->createCommandBuffer());
-
-        _createSyncObjects();
-    }
-
-    void _recordCommandBuffer(gfx::vk::CommandBuffer& cmd, uint32_t imageIndex) {
-        cmd.begin();
-        cmd.beginRenderPass(m_renderPass, imageIndex);
-        cmd.draw(3);
-        cmd.endRenderPass();
-        cmd.end();
-    }
-
-    void _mainLoop() {
-        while (!glfwWindowShouldClose(m_window)) {
-            glfwPollEvents();
-            _drawFrame();
-        }
-
-        vkDeviceWaitIdle(m_device->getVkDevice());
-    }
-
     void _drawFrame() {
         vkWaitForFences(m_device->getVkDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
         vkResetFences(m_device->getVkDevice(), 1, &m_inFlightFences[m_currentFrame]);
@@ -139,18 +131,6 @@ class DevApp {
                 throw std::runtime_error("failed to create synchronization objects for a frame!");
             }
         }
-    }
-
-    void _cleanup() {
-        // synchronization objects
-        for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(m_device->getVkDevice(), m_renderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(m_device->getVkDevice(), m_imageAvailableSemaphores[i], nullptr);
-            vkDestroyFence(m_device->getVkDevice(), m_inFlightFences[i], nullptr);
-        }
-
-        // renderpass
-        m_device->free(m_renderPass);
     }
 };
 

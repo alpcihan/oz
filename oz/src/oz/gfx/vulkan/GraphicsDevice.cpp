@@ -294,9 +294,7 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
                    .data(),
                2, m_swapChainExtent, vkPipelineLayout, vkRenderPass, &vkGraphicsPipeline) == VK_SUCCESS);
 
-    std::vector<VkFramebuffer> vkFrameBuffers;
-    vkFrameBuffers.resize(m_swapChainImageViews.size());
-    std::cout << m_swapChainImageViews.size() << std::endl;
+    std::vector<VkFramebuffer> vkFrameBuffers(m_swapChainImageViews.size());
     for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
         assert(gfx::vk::ivkCreateFramebuffer(m_device, vkRenderPass, m_swapChainExtent, m_swapChainImageViews[i],
                                              &vkFrameBuffers[i]) == VK_SUCCESS);

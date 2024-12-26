@@ -2,7 +2,6 @@
 
 #include "oz/core/file/file.h"
 #include "oz/gfx/vulkan/GraphicsDevice.h"
-#include "oz/gfx/vulkan/vk_data.h" // TODO: remove
 #include "oz/gfx/vulkan/vk_utils.h"
 
 namespace oz {
@@ -47,11 +46,8 @@ class DevApp {
     uint32_t m_currentFrame          = 0;
 
     std::unique_ptr<gfx::vk::GraphicsDevice> m_device;
-
     GLFWwindow* m_window;
-
     gfx::vk::RenderPass m_renderPass;
-
     std::vector<gfx::vk::CommandBuffer> m_commandBuffers;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;

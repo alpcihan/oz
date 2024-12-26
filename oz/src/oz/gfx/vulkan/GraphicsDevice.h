@@ -30,9 +30,6 @@ class GraphicsDevice final {
     VkQueue getVkPresentQueue() const { return m_presentQueue; }
 
     VkSwapchainKHR getVkSwapchain() const { return m_swapChain; }
-    const std::vector<VkImageView>& getSwapChainImageViews() const { return m_swapChainImageViews; }
-    const VkExtent2D& getVkSwapchainExtent() const { return m_swapChainExtent; }
-    const std::vector<VkImage>& getSwapChainImages() const { return m_swapChainImages; }
 
     void free(Shader shader);
     void free(RenderPass renderPass);

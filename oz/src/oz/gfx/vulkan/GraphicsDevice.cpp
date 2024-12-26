@@ -8,8 +8,8 @@ namespace oz::gfx::vk {
 namespace {
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                    void *pUserData) {
+                                                    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                    void* pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
     }
@@ -23,12 +23,12 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // glfw
     glfwInit();
     uint32_t extensionCount = 0;
-    const char **extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
+    const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    const std::vector<const char *> requiredExtensions = ivkPopulateExtensions();
-    const std::vector<const char *> requiredInstanceExtensions =
+    const std::vector<const char*> requiredExtensions = ivkPopulateExtensions();
+    const std::vector<const char*> requiredInstanceExtensions =
         ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
-    const std::vector<const char *> layers = ivkPopulateLayers(enableValidationLayers);
+    const std::vector<const char*> layers = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
 
@@ -112,7 +112,7 @@ GraphicsDevice::~GraphicsDevice() {
     }
 }
 
-GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char *name) {
+GLFWwindow* GraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char* name) {
     // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -153,7 +153,7 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
         {
             surfaceFormat = formats[0];
 
-            for (const auto &availableFormat : formats) {
+            for (const auto& availableFormat : formats) {
                 if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
                     availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                     surfaceFormat = availableFormat;
@@ -168,7 +168,7 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
         {
             presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-            for (const auto &availablePresentMode : presentModes) {
+            for (const auto& availablePresentMode : presentModes) {
                 if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                     presentMode = availablePresentMode;
                 }
@@ -209,7 +209,7 @@ GLFWwindow *GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
         {
             bool presentFamilyFound = false;
             for (int i = 0; i < m_queueFamilies.size(); i++) {
-                const auto &queueFamily = m_queueFamilies[i];
+                const auto& queueFamily = m_queueFamilies[i];
 
                 // present family
                 // TODO: compare same family with graphics queue
@@ -258,7 +258,7 @@ VkCommandBuffer GraphicsDevice::createCommandBuffer() {
     return commandBuffer;
 }
 
-Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) {
+Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) {
     std::string absolutePath = file::getBuildPath() + "/oz/resources/shaders/";
     absolutePath += path;
     auto code = file::readFile(absolutePath);
@@ -266,7 +266,7 @@ Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) 
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
-    createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
+    createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -278,7 +278,6 @@ Shader GraphicsDevice::createShader(const std::string &path, ShaderStage stage) 
     shaderStageInfo.stage  = (VkShaderStageFlagBits)stage;
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
-
 
     Shader shaderData                           = new ShaderData;
     shaderData->stage                           = stage;
@@ -302,7 +301,6 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
                                                               fragmentShader->vkPipelineShaderStageCreateInfo}
                    .data(),
                2, m_swapChainExtent, vkPipelineLayout, vkRenderPass, &vkGraphicsPipeline) == VK_SUCCESS);
-
 
     RenderPass renderPass          = new RenderPassData;
     renderPass->vkRenderPass       = vkRenderPass;

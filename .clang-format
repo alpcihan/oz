@@ -5,6 +5,9 @@ ColumnLimit: 120
 
 BinPackParameters: false
 
+PointerAlignment: Left
+ReferenceAlignment: Left
+
 #AlignAfterOpenBracket: AlwaysBreak
 AllowAllParametersOfDeclarationOnNextLine: true
 AlignEscapedNewlines: Left

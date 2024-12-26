@@ -1,18 +1,17 @@
 #pragma once
 
 #include "oz/gfx/vulkan/vk_base.h"
-#include "oz/gfx/vulkan/vk_types.h"
 
 namespace oz::gfx::vk {
 
-struct ShaderData {
+struct ShaderData final {
     ShaderStage stage;
 
     VkShaderModule vkShaderModule;
     VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo;
 };
 
-struct RenderPassData {
+struct RenderPassData final {
     VkRenderPass vkRenderPass;
     VkPipelineLayout vkPipelineLayout;
     VkPipeline vkGraphicsPipeline;

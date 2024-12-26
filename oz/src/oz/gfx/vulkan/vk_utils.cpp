@@ -3,11 +3,11 @@
 namespace oz::gfx::vk {
 
 VkResult ivkCreateInstance(uint32_t extensionCount,
-                           const char *const *extensionNames,
+                           const char* const* extensionNames,
                            uint32_t layerCount,
-                           const char *const *layerNames,
-                           VkDebugUtilsMessengerCreateInfoEXT *debugCreateInfo,
-                           VkInstance *outInstance) {
+                           const char* const* layerNames,
+                           VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
+                           VkInstance* outInstance) {
     // app info
     const VkApplicationInfo appInfo{.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                                     .pApplicationName   = "oz",
@@ -28,17 +28,19 @@ VkResult ivkCreateInstance(uint32_t extensionCount,
     return vkCreateInstance(&createInfo, nullptr, outInstance);
 }
 
-VkResult ivkCreateDebugMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT &debugCreateInfo, VkDebugUtilsMessengerEXT *outDebugMessenger) {
+VkResult ivkCreateDebugMessenger(VkInstance instance,
+                                 const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
+                                 VkDebugUtilsMessengerEXT* outDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     // TODO: check func != nullptr
     return func(instance, &debugCreateInfo, nullptr, outDebugMessenger);
 }
 
 bool ivkPickPhysicalDevice(VkInstance instance,
-                           const std::vector<const char *> &requiredExtensions,
-                           VkPhysicalDevice *outPhysicalDevice,
-                           std::vector<VkQueueFamilyProperties> *outQueueFamilies,
-                           uint32_t *outGraphicsFamily) {
+                           const std::vector<const char*>& requiredExtensions,
+                           VkPhysicalDevice* outPhysicalDevice,
+                           std::vector<VkQueueFamilyProperties>* outQueueFamilies,
+                           uint32_t* outGraphicsFamily) {
     // get physical devices
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -48,7 +50,7 @@ bool ivkPickPhysicalDevice(VkInstance instance,
 
     // find "suitable" GPU
     bool isGPUFound = false;
-    for (const auto &physicalDevice : physicalDevices) {
+    for (const auto& physicalDevice : physicalDevices) {
         // check queue family support
         std::optional<uint32_t> graphicsFamily;
         uint32_t queueFamilyCount = 0;
@@ -56,7 +58,7 @@ bool ivkPickPhysicalDevice(VkInstance instance,
         outQueueFamilies->resize(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, outQueueFamilies->data());
         for (int i = 0; i < outQueueFamilies->size(); i++) {
-            const auto &queueFamily = (*outQueueFamilies)[i];
+            const auto& queueFamily = (*outQueueFamilies)[i];
 
             // graphics family
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -72,8 +74,8 @@ bool ivkPickPhysicalDevice(VkInstance instance,
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
         uint32_t extensionMatchCount = 0;
-        for (const auto &availableExtension : availableExtensions) {
-            for (const auto &requiredExtension : requiredExtensions) {
+        for (const auto& availableExtension : availableExtensions) {
+            for (const auto& requiredExtension : requiredExtensions) {
                 if (strcmp(requiredExtension, availableExtension.extensionName) == 0) {
                     extensionMatchCount++;
                 }
@@ -96,17 +98,18 @@ bool ivkPickPhysicalDevice(VkInstance instance,
 }
 
 VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
-                                const std::vector<uint32_t> &uniqueQueueFamilies,
-                                const std::vector<const char *> &requiredExtensions,
-                                const std::vector<const char *> &validationLayers,
-                                VkDevice *outDevice) {
-
+                                const std::vector<uint32_t>& uniqueQueueFamilies,
+                                const std::vector<const char*>& requiredExtensions,
+                                const std::vector<const char*>& validationLayers,
+                                VkDevice* outDevice) {
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) {
-        VkDeviceQueueCreateInfo queueCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &queuePriority};
+        VkDeviceQueueCreateInfo queueCreateInfo{.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                                                .queueFamilyIndex = queueFamily,
+                                                .queueCount       = 1,
+                                                .pQueuePriorities = &queuePriority};
 
         queueCreateInfos.push_back(queueCreateInfo);
     }
@@ -127,14 +130,13 @@ VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
 
 VkResult ivkCreateSwapChain(VkDevice device,
                             VkSurfaceKHR surface,
-                            VkSurfaceFormatKHR &surfaceFormat,
+                            VkSurfaceFormatKHR& surfaceFormat,
                             VkPresentModeKHR presentMode,
                             VkSurfaceTransformFlagBitsKHR preTransform,
                             uint32_t imageCount,
                             const uint32_t (&queueFamilyIndices)[2],
-                            const VkExtent2D &extent,
-                            VkSwapchainKHR *outSwapChain) {
-
+                            const VkExtent2D& extent,
+                            VkSwapchainKHR* outSwapChain) {
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface          = surface;
@@ -163,7 +165,7 @@ VkResult ivkCreateSwapChain(VkDevice device,
     return vkCreateSwapchainKHR(device, &createInfo, nullptr, outSwapChain);
 }
 
-VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageView *outSwapChainImageView) {
+VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkImageView* outSwapChainImageView) {
     VkImageViewCreateInfo createInfo{};
     createInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     createInfo.image                           = image;
@@ -182,7 +184,11 @@ VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkI
     return vkCreateImageView(device, &createInfo, nullptr, outSwapChainImageView);
 }
 
-VkResult ivkCreateFramebuffer(VkDevice device, VkRenderPass renderPass, VkExtent2D swapchainExtent, VkImageView imageView, VkFramebuffer *outFramebuffer) {
+VkResult ivkCreateFramebuffer(VkDevice device,
+                              VkRenderPass renderPass,
+                              VkExtent2D swapchainExtent,
+                              VkImageView imageView,
+                              VkFramebuffer* outFramebuffer) {
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = renderPass;
@@ -195,7 +201,7 @@ VkResult ivkCreateFramebuffer(VkDevice device, VkRenderPass renderPass, VkExtent
     return vkCreateFramebuffer(device, &framebufferInfo, nullptr, outFramebuffer);
 }
 
-VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout *outPipelineLayout) {
+VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineLayout) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount         = 0;       // No descriptor sets
@@ -206,7 +212,7 @@ VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout *outPipelineL
     return vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, outPipelineLayout);
 }
 
-VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkRenderPass *outRenderPass) {
+VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkRenderPass* outRenderPass) {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format         = swapChainImageFormat;
     colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
@@ -248,12 +254,12 @@ VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkR
 }
 
 VkResult ivkCreateGraphicsPipeline(VkDevice device,
-                                   VkPipelineShaderStageCreateInfo *shaderStages,
+                                   VkPipelineShaderStageCreateInfo* shaderStages,
                                    uint32_t stageCount,
                                    VkExtent2D swapChainExtent,
                                    VkPipelineLayout pipelineLayout,
                                    VkRenderPass renderPass,
-                                   VkPipeline *outGraphicsPipeline) {
+                                   VkPipeline* outGraphicsPipeline) {
     std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -308,8 +314,9 @@ VkResult ivkCreateGraphicsPipeline(VkDevice device,
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable    = VK_FALSE;
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -335,7 +342,7 @@ VkResult ivkCreateGraphicsPipeline(VkDevice device,
     return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, outGraphicsPipeline);
 }
 
-VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool *outCommandPool) {
+VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool* outCommandPool) {
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -344,7 +351,10 @@ VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkComm
     return vkCreateCommandPool(device, &poolInfo, nullptr, outCommandPool);
 }
 
-VkResult ivkAllocateCommandBuffers(VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, VkCommandBuffer *outCommandBuffers) {
+VkResult ivkAllocateCommandBuffers(VkDevice device,
+                                   VkCommandPool commandPool,
+                                   uint32_t commandBufferCount,
+                                   VkCommandBuffer* outCommandBuffers) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool        = commandPool;
@@ -355,24 +365,27 @@ VkResult ivkAllocateCommandBuffers(VkDevice device, VkCommandPool commandPool, u
 }
 
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
-    return VkDebugUtilsMessengerCreateInfoEXT{.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    return VkDebugUtilsMessengerCreateInfoEXT{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                                               .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-                                              .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                              .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
                                               .pfnUserCallback = callback};
 }
 
-std::vector<const char *> ivkPopulateExtensions() {
+std::vector<const char*> ivkPopulateExtensions() {
     return {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         "VK_KHR_portability_subset",
     };
 }
 
-std::vector<const char *> ivkPopulateInstanceExtensions(const char **extensions, uint32_t extensionCount, bool isValidationLayerEnabled) {
-    std::vector<const char *> requiredInstanceExtensions(extensions, extensions + extensionCount);
+std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions,
+                                                       uint32_t extensionCount,
+                                                       bool isValidationLayerEnabled) {
+    std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
 
     if (isValidationLayerEnabled) {
         requiredInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -385,22 +398,22 @@ std::vector<const char *> ivkPopulateInstanceExtensions(const char **extensions,
     return requiredInstanceExtensions;
 }
 
-std::vector<const char *> ivkPopulateLayers(bool isValidationLayerEnabled) {
-    typedef std::vector<const char *> ccv;
+std::vector<const char*> ivkPopulateLayers(bool isValidationLayerEnabled) {
+    typedef std::vector<const char*> ccv;
 
     return isValidationLayerEnabled ? ccv{"VK_LAYER_KHRONOS_validation"} : ccv{};
 }
 
-bool ivkAreLayersSupported(const std::vector<const char *> &layers) {
+bool ivkAreLayersSupported(const std::vector<const char*>& layers) {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char *layerName : layers) {
+    for (const char* layerName : layers) {
         bool layerFound = false;
 
-        for (const auto &layerProperties : availableLayers) {
+        for (const auto& layerProperties : availableLayers) {
             if (strcmp(layerName, layerProperties.layerName) == 0) {
                 layerFound = true;
                 break;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "oz/gfx/vulkan/CommandBuffer.h"
 #include "oz/gfx/vulkan/vk_base.h"
 
 namespace oz::gfx::vk {
@@ -20,7 +21,7 @@ class GraphicsDevice final {
     GLFWwindow* createWindow(const uint32_t width,
                              const uint32_t height,
                              const char* name = ""); // TODO: move to a window class
-    VkCommandBuffer createCommandBuffer();
+    CommandBuffer createCommandBuffer();
     Shader createShader(const std::string& path, ShaderStage stage);
     RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader);
 
@@ -32,7 +33,6 @@ class GraphicsDevice final {
     const std::vector<VkImageView>& getSwapChainImageViews() const { return m_swapChainImageViews; }
     const VkExtent2D& getVkSwapchainExtent() const { return m_swapChainExtent; }
     const std::vector<VkImage>& getSwapChainImages() const { return m_swapChainImages; }
-    // const std::vector<VkFramebuffer> &getSwapChainFrameBuffers() const { return m_swapChainFramebuffers; }
 
     void free(Shader shader);
     void free(RenderPass renderPass);
@@ -49,7 +49,6 @@ class GraphicsDevice final {
     VkExtent2D m_swapChainExtent;
     std::vector<VkImage> m_swapChainImages;
     std::vector<VkImageView> m_swapChainImageViews;
-    // std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 

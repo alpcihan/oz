@@ -15,6 +15,8 @@ struct RenderPassData final {
     VkRenderPass vkRenderPass;
     VkPipelineLayout vkPipelineLayout;
     VkPipeline vkGraphicsPipeline;
+    std::vector<VkFramebuffer> vkFrameBuffers;
+    VkExtent2D vkExtent;
 };
 
 } // namespace oz::gfx::vk

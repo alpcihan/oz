@@ -25,8 +25,7 @@ class DevApp {
 
     gfx::vk::RenderPass m_renderPass;
 
-    std::vector<VkFramebuffer> m_swapChainFramebuffers;
-    std::vector<VkCommandBuffer> m_commandBuffers;
+    std::vector<gfx::vk::CommandBuffer> m_commandBuffers;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -35,86 +34,28 @@ class DevApp {
   private:
     void _init() {
         m_device = std::make_unique<gfx::vk::GraphicsDevice>(true);
-        m_window   = m_device->createWindow(800, 600, "oz");
+        m_window = m_device->createWindow(800, 600, "oz");
 
         gfx::vk::Shader vertShader = m_device->createShader("default_vert.spv", gfx::vk::ShaderStage::Vertex);
         gfx::vk::Shader fragShader = m_device->createShader("default_frag.spv", gfx::vk::ShaderStage::Fragment);
 
         m_renderPass = m_device->createRenderPass(vertShader, fragShader);
 
-        // free the shader modules
         m_device->free(vertShader);
         m_device->free(fragShader);
 
-        _createFramebuffers();
-
-        m_commandBuffers.resize(m_MAX_FRAMES_IN_FLIGHT);
         for (int i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++)
-            m_commandBuffers[i] = m_device->createCommandBuffer();
+            m_commandBuffers.push_back(m_device->createCommandBuffer());
 
         _createSyncObjects();
     }
 
-    void _createFramebuffers() {
-        m_swapChainFramebuffers.resize(m_device->getSwapChainImageViews().size());
-
-        for (size_t i = 0; i < m_device->getSwapChainImageViews().size(); i++) {
-            VkResult result = gfx::vk::ivkCreateFramebuffer(
-                m_device->getVkDevice(), m_renderPass->vkRenderPass, m_device->getVkSwapchainExtent(),
-                m_device->getSwapChainImageViews()[i], &m_swapChainFramebuffers[i]);
-
-            if (result != VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
-    }
-
-    void _recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-        vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags            = 0;       // optional
-        beginInfo.pInheritanceInfo = nullptr; // optional
-
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass        = m_renderPass->vkRenderPass;
-        renderPassInfo.framebuffer       = m_swapChainFramebuffers[imageIndex];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_device->getVkSwapchainExtent();
-        VkClearValue clearColor          = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        renderPassInfo.clearValueCount   = 1;
-        renderPassInfo.pClearValues      = &clearColor;
-
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_renderPass->vkGraphicsPipeline);
-
-        VkViewport viewport{};
-        viewport.x        = 0.0f;
-        viewport.y        = 0.0f;
-        viewport.width    = static_cast<float>(m_device->getVkSwapchainExtent().width);
-        viewport.height   = static_cast<float>(m_device->getVkSwapchainExtent().height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = m_device->getVkSwapchainExtent();
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-        vkCmdEndRenderPass(commandBuffer);
-
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
+    void _recordCommandBuffer(gfx::vk::CommandBuffer& cmd, uint32_t imageIndex) {
+        cmd.begin();
+        cmd.beginRenderPass(m_renderPass, imageIndex);
+        cmd.draw(3);
+        cmd.endRenderPass();
+        cmd.end();
     }
 
     void _mainLoop() {
@@ -134,8 +75,12 @@ class DevApp {
         vkAcquireNextImageKHR(m_device->getVkDevice(), m_device->getVkSwapchain(), UINT64_MAX,
                               m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-       
-        _recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
+        auto& cmd = m_commandBuffers[m_currentFrame];
+        cmd.begin();
+        cmd.beginRenderPass(m_renderPass, imageIndex);
+        cmd.draw(3);
+        cmd.endRenderPass();
+        cmd.end();
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -146,7 +91,7 @@ class DevApp {
         submitInfo.pWaitSemaphores        = waitSemaphores;
         submitInfo.pWaitDstStageMask      = waitStages;
         submitInfo.commandBufferCount     = 1;
-        submitInfo.pCommandBuffers        = &m_commandBuffers[m_currentFrame];
+        submitInfo.pCommandBuffers        = &m_commandBuffers[m_currentFrame].m_vkCommandBuffer;
 
         VkSemaphore signalSemaphores[]  = {m_renderFinishedSemaphores[m_currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
@@ -206,11 +151,6 @@ class DevApp {
 
         // renderpass
         m_device->free(m_renderPass);
-
-        // framebuffers
-        for (auto framebuffer : m_swapChainFramebuffers) {
-            vkDestroyFramebuffer(m_device->getVkDevice(), framebuffer, nullptr);
-        }
     }
 };
 

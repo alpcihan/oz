@@ -248,15 +248,7 @@ GLFWwindow* GraphicsDevice::createWindow(const uint32_t width, const uint32_t he
     return m_window;
 }
 
-VkCommandBuffer GraphicsDevice::createCommandBuffer() {
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-
-    VkResult result = ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
-
-    assert(result == VK_SUCCESS);
-
-    return commandBuffer;
-}
+CommandBuffer GraphicsDevice::createCommandBuffer() { return {m_device, m_commandPool}; }
 
 Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) {
     std::string absolutePath = file::getBuildPath() + "/oz/resources/shaders/";
@@ -302,10 +294,20 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
                    .data(),
                2, m_swapChainExtent, vkPipelineLayout, vkRenderPass, &vkGraphicsPipeline) == VK_SUCCESS);
 
+    std::vector<VkFramebuffer> vkFrameBuffers;
+    vkFrameBuffers.resize(m_swapChainImageViews.size());
+    std::cout << m_swapChainImageViews.size() << std::endl;
+    for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
+        assert(gfx::vk::ivkCreateFramebuffer(m_device, vkRenderPass, m_swapChainExtent, m_swapChainImageViews[i],
+                                             &vkFrameBuffers[i]) == VK_SUCCESS);
+    }
+
     RenderPass renderPass          = new RenderPassData;
     renderPass->vkRenderPass       = vkRenderPass;
     renderPass->vkPipelineLayout   = vkPipelineLayout;
     renderPass->vkGraphicsPipeline = vkGraphicsPipeline;
+    renderPass->vkFrameBuffers     = vkFrameBuffers;
+    renderPass->vkExtent           = m_swapChainExtent;
 
     return renderPass;
 }
@@ -319,6 +321,12 @@ void GraphicsDevice::free(RenderPass renderPass) {
     vkDestroyPipeline(m_device, renderPass->vkGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_device, renderPass->vkPipelineLayout, nullptr);
     vkDestroyRenderPass(m_device, renderPass->vkRenderPass, nullptr);
+
+    for (auto framebuffer : renderPass->vkFrameBuffers) {
+        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+    }
+    renderPass->vkFrameBuffers.clear();
+
     delete renderPass;
 }
 

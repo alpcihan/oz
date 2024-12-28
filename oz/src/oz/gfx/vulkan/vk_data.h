@@ -19,4 +19,14 @@ struct RenderPassData final {
     VkExtent2D vkExtent;
 };
 
+struct SemaphoreData final {
+    VkSemaphore vkSemaphore;
+    // TODO: only vkSemaphore is supported
+};
+
+struct FenceData final {
+    VkFence vkFence;
+    // TODO: only vkFence is supported
+};
+
 } // namespace oz::gfx::vk

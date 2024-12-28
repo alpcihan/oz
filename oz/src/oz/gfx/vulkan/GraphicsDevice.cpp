@@ -84,7 +84,7 @@ GraphicsDevice::~GraphicsDevice() {
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;
 
-    // debug utils
+    // debug messenger
     if (m_debugMessenger != VK_NULL_HANDLE) {
         auto func =
             (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -261,9 +261,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
+    assert(vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS);
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -310,6 +308,41 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
     return renderPass;
 }
 
+Semaphore GraphicsDevice::createSemaphore() {
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkSemaphore vkSemaphore;
+    vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &vkSemaphore);
+
+    Semaphore semaphore    = new SemaphoreData;
+    semaphore->vkSemaphore = vkSemaphore;
+
+    return semaphore;
+}
+
+Fence GraphicsDevice::createFence() {
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkFence vkFence;
+    vkCreateFence(m_device, &fenceInfo, nullptr, &vkFence);
+
+    Fence fence    = new FenceData;
+    fence->vkFence = vkFence;
+
+    return fence;
+}
+
+void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) {
+    vkWaitForFences(m_device, fenceCount, &fence->vkFence, waitAll ? VK_TRUE : VK_FALSE, UINT64_MAX);
+}
+
+void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) {
+    vkResetFences(m_device, fenceCount, &fence->vkFence);
+}
+
 void GraphicsDevice::free(Shader shader) {
     vkDestroyShaderModule(m_device, shader->vkShaderModule, nullptr);
     delete shader;
@@ -326,6 +359,15 @@ void GraphicsDevice::free(RenderPass renderPass) {
     renderPass->vkFrameBuffers.clear();
 
     delete renderPass;
+}
+
+void GraphicsDevice::free(Semaphore semaphore) {
+    vkDestroySemaphore(m_device, semaphore->vkSemaphore, nullptr);
+    delete semaphore;
+}
+void GraphicsDevice::free(Fence fence) {
+    vkDestroyFence(m_device, fence->vkFence, nullptr);
+    delete fence;
 }
 
 VkCommandPool GraphicsDevice::_createCommandPool() {

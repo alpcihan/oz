@@ -24,6 +24,11 @@ class GraphicsDevice final {
     CommandBuffer createCommandBuffer();
     Shader createShader(const std::string& path, ShaderStage stage);
     RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader);
+    Semaphore createSemaphore();
+    Fence createFence();
+
+    void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true);
+    void resetFences(Fence fence, uint32_t fenceCount);
 
     VkDevice getVkDevice() const { return m_device; }
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
@@ -33,6 +38,8 @@ class GraphicsDevice final {
 
     void free(Shader shader);
     void free(RenderPass renderPass);
+    void free(Semaphore semaphore);
+    void free(Fence fence);
 
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
@@ -55,8 +62,7 @@ class GraphicsDevice final {
     uint32_t m_graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
     uint32_t m_presentFamily  = VK_QUEUE_FAMILY_IGNORED;
 
-    // window (TODO: move to a window class)
-    GLFWwindow* m_window = nullptr;
+    GLFWwindow* m_window = nullptr; // window (TODO: move to a window class)
 
   private:
     VkCommandPool _createCommandPool();

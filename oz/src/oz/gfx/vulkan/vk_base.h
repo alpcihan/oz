@@ -15,6 +15,8 @@ namespace oz::gfx::vk {
 
 VK_TYPE(Shader);
 VK_TYPE(RenderPass);
+VK_TYPE(Fence);
+VK_TYPE(Semaphore);
 
 enum class ShaderStage : uint8_t { Vertex = 0x00000001, Fragment = 0x00000010, Compute = 0x00000020 };
 

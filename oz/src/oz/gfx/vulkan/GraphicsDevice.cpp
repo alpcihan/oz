@@ -258,7 +258,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
         }
     }
 
-    Window window                  = new WindowData;
+    Window window                  = OZ_CREATE_VK_DATA(Window);
     window->vkWindow               = vkWindow;
     window->vkSurface              = vkSurface;
     window->vkSwapChain            = vkSwapChain;
@@ -267,6 +267,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
     window->vkSwapChainImages      = std::move(vkSwapChainImages);
     window->vkSwapChainImageViews  = std::move(vkSwapChainImageViews);
     window->vkPresentQueue         = vkPresentQueue;
+    window->vkInstance             = m_instance;
 
     return window;
 }
@@ -278,13 +279,9 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     absolutePath += path;
     auto code = file::readFile(absolutePath);
 
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
-
     VkShaderModule shaderModule;
-    assert(vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS);
+    assert(ivkCreateShaderModule(m_device, code.size(), reinterpret_cast<const uint32_t*>(code.data()),
+                                 &shaderModule) == VK_SUCCESS);
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -292,7 +289,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
 
-    Shader shaderData                           = new ShaderData;
+    Shader shaderData                           = OZ_CREATE_VK_DATA(Shader);
     shaderData->stage                           = stage;
     shaderData->vkShaderModule                  = shaderModule;
     shaderData->vkPipelineShaderStageCreateInfo = shaderStageInfo;
@@ -317,11 +314,11 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
 
     std::vector<VkFramebuffer> vkFrameBuffers(window->vkSwapChainImageViews.size());
     for (size_t i = 0; i < window->vkSwapChainImageViews.size(); i++) {
-        assert(gfx::vk::ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent,
-                                             window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) == VK_SUCCESS);
+        assert(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i],
+                                    &vkFrameBuffers[i]) == VK_SUCCESS);
     }
 
-    RenderPass renderPass          = new RenderPassData;
+    RenderPass renderPass          = OZ_CREATE_VK_DATA(RenderPass);
     renderPass->vkRenderPass       = vkRenderPass;
     renderPass->vkPipelineLayout   = vkPipelineLayout;
     renderPass->vkGraphicsPipeline = vkGraphicsPipeline;
@@ -332,13 +329,10 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
 }
 
 Semaphore GraphicsDevice::createSemaphore() {
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
     VkSemaphore vkSemaphore;
-    vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &vkSemaphore);
+    assert(ivkCreateSemaphore(m_device, &vkSemaphore) == VK_SUCCESS);
 
-    Semaphore semaphore    = new SemaphoreData;
+    Semaphore semaphore    = OZ_CREATE_VK_DATA(Semaphore);
     semaphore->vkSemaphore = vkSemaphore;
 
     return semaphore;
@@ -347,14 +341,10 @@ Semaphore GraphicsDevice::createSemaphore() {
 void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
 
 Fence GraphicsDevice::createFence() {
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
     VkFence vkFence;
-    vkCreateFence(m_device, &fenceInfo, nullptr, &vkFence);
+    assert(ivkCreateFence(m_device, &vkFence) == VK_SUCCESS);
 
-    Fence fence    = new FenceData;
+    Fence fence    = OZ_CREATE_VK_DATA(Fence);
     fence->vkFence = vkFence;
 
     return fence;
@@ -371,21 +361,10 @@ void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) const {
 CommandBuffer GraphicsDevice::getNextCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
 
 void GraphicsDevice::submit(CommandBuffer& commandBuffer) const {
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount     = 1;
-    submitInfo.pWaitSemaphores        = &m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore;
-    submitInfo.pWaitDstStageMask      = waitStages;
-    submitInfo.commandBufferCount     = 1;
-    submitInfo.pCommandBuffers        = &commandBuffer.m_vkCommandBuffer;
-    submitInfo.signalSemaphoreCount   = 1;
-    submitInfo.pSignalSemaphores      = &m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore;
-
-    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]->vkFence) != VK_SUCCESS) {
-        throw std::runtime_error("failed to submit draw command buffer!");
-    }
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    assert(ivkQueueSubmit(m_graphicsQueue, m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore, waitStage,
+                          commandBuffer.m_vkCommandBuffer, m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore,
+                          m_inFlightFences[m_currentFrame]->vkFence) == VK_SUCCESS);
 }
 
 bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
@@ -404,86 +383,22 @@ uint32_t GraphicsDevice::getNextImage(Window window) const {
 }
 
 void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = &m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore;
-
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains    = &window->vkSwapChain;
-    presentInfo.pImageIndices  = &imageIndex;
-    presentInfo.pResults       = nullptr; // optional
-
-    vkQueuePresentKHR(window->vkPresentQueue, &presentInfo);
+    VkResult result = ivkQueuePresent(window->vkPresentQueue, m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore,
+                                      window->vkSwapChain, imageIndex);
+    assert(result == VK_SUCCESS);
 
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
-void GraphicsDevice::free(Window window) const {
-    // swap chain
-    vkDestroySwapchainKHR(m_device, window->vkSwapChain, nullptr);
-    window->vkSwapChain = VK_NULL_HANDLE;
-
-    // image views
-    for (auto imageView : window->vkSwapChainImageViews) {
-        vkDestroyImageView(m_device, imageView, nullptr);
-    }
-    window->vkSwapChainImageViews.clear();
-
-    // images
-    // for (auto image : window->vkSwapChainImages) {
-    //    vkDestroyImage(m_device, image, nullptr);
-    // }
-    window->vkSwapChainImages.clear();
-
-    // surface
-    if (window->vkSurface != VK_NULL_HANDLE) {
-        vkDestroySurfaceKHR(m_instance, window->vkSurface, nullptr);
-        window->vkSurface = VK_NULL_HANDLE;
-    }
-
-    // window
-    if (window->vkWindow != nullptr) {
-        glfwDestroyWindow(window->vkWindow);
-        window->vkWindow = nullptr;
-    }
-
-    delete window;
-}
-
-void GraphicsDevice::free(Shader shader) const {
-    vkDestroyShaderModule(m_device, shader->vkShaderModule, nullptr);
-    delete shader;
-}
-
-void GraphicsDevice::free(RenderPass renderPass) const {
-    vkDestroyPipeline(m_device, renderPass->vkGraphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, renderPass->vkPipelineLayout, nullptr);
-    vkDestroyRenderPass(m_device, renderPass->vkRenderPass, nullptr);
-
-    for (auto framebuffer : renderPass->vkFrameBuffers) {
-        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-    }
-    renderPass->vkFrameBuffers.clear();
-
-    delete renderPass;
-}
-
-void GraphicsDevice::free(Semaphore semaphore) const {
-    vkDestroySemaphore(m_device, semaphore->vkSemaphore, nullptr);
-    delete semaphore;
-}
-
-void GraphicsDevice::free(Fence fence) const {
-    vkDestroyFence(m_device, fence->vkFence, nullptr);
-    delete fence;
-}
+void GraphicsDevice::free(Window window) const { OZ_FREE_VK_DATA(window); }
+void GraphicsDevice::free(Shader shader) const { OZ_FREE_VK_DATA(shader); }
+void GraphicsDevice::free(RenderPass renderPass) const { OZ_FREE_VK_DATA(renderPass) }
+void GraphicsDevice::free(Semaphore semaphore) const { OZ_FREE_VK_DATA(semaphore); }
+void GraphicsDevice::free(Fence fence) const { OZ_FREE_VK_DATA(fence); }
 
 VkCommandPool GraphicsDevice::_createCommandPool() {
     VkCommandPool commandPool = VK_NULL_HANDLE;
-    VkResult result           = ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool);
-
-    assert(result == VK_SUCCESS);
+    assert(ivkCreateCommandPool(m_device, m_graphicsFamily, &commandPool) == VK_SUCCESS);
 
     return commandPool;
 }

@@ -364,6 +364,66 @@ VkResult ivkAllocateCommandBuffers(VkDevice device,
     return vkAllocateCommandBuffers(device, &allocInfo, outCommandBuffers);
 }
 
+VkResult ivkCreateShaderModule(VkDevice device, size_t codeSize, const uint32_t* code, VkShaderModule* outShaderModule) {
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = codeSize;
+    createInfo.pCode    = code;
+
+    return vkCreateShaderModule(device, &createInfo, nullptr, outShaderModule);
+}
+
+VkResult ivkCreateFence(VkDevice device, VkFence* outFence) {
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    return vkCreateFence(device, &fenceInfo, nullptr, outFence);
+}
+
+VkResult ivkCreateSemaphore(VkDevice device, VkSemaphore* outSemaphore) {
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    return vkCreateSemaphore(device, &semaphoreInfo, nullptr, outSemaphore);
+}
+
+VkResult ivkQueueSubmit(VkQueue graphicsQueue,
+                        VkSemaphore imageAvailableSemaphore,
+                        VkPipelineStageFlags waitStage,
+                        VkCommandBuffer commandBuffer,
+                        VkSemaphore renderFinishedSemaphore,
+                        VkFence inFlightFence) {
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.pWaitSemaphores      = &imageAvailableSemaphore;
+    submitInfo.pWaitDstStageMask    = &waitStage;
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.pCommandBuffers      = &commandBuffer;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores    = &renderFinishedSemaphore;
+
+    return vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
+}
+
+VkResult ivkQueuePresent(VkQueue presentQueue,
+                         VkSemaphore renderFinishedSemaphore,
+                         VkSwapchainKHR swapChain,
+                         uint32_t imageIndex) {
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores    = &renderFinishedSemaphore;
+    presentInfo.swapchainCount     = 1;
+    presentInfo.pSwapchains        = &swapChain;
+    presentInfo.pImageIndices      = &imageIndex;
+    presentInfo.pResults           = nullptr; // optional
+
+    return vkQueuePresentKHR(presentQueue, &presentInfo);
+}
+
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
     return VkDebugUtilsMessengerCreateInfoEXT{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                                               .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |

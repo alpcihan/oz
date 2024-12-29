@@ -21,4 +21,6 @@ OZ_VK_TYPE(Semaphore);
 
 enum class ShaderStage : uint8_t { Vertex = 0x00000001, Fragment = 0x00000010, Compute = 0x00000020 };
 
+#define OZ_VK_ASSERT_SUCCESS(vkFunc) assert(vkFunc == VK_SUCCESS)
+
 } // namespace oz::gfx::vk

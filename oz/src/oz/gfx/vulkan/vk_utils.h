@@ -64,6 +64,24 @@ VkResult ivkAllocateCommandBuffers(VkDevice device,
                                    uint32_t commandBufferCount,
                                    VkCommandBuffer* outCommandBuffers);
 
+VkResult ivkCreateShaderModule(VkDevice device, size_t codeSize, const uint32_t* code, VkShaderModule* outShaderModule);
+
+VkResult ivkCreateFence(VkDevice device, VkFence* outFence);
+
+VkResult ivkCreateSemaphore(VkDevice device, VkSemaphore* outSemaphore);
+
+VkResult ivkQueueSubmit(VkQueue graphicsQueue, 
+                        VkSemaphore imageAvailableSemaphore, 
+                        VkPipelineStageFlags waitStage, 
+                        VkCommandBuffer commandBuffer, 
+                        VkSemaphore renderFinishedSemaphore, 
+                        VkFence inFlightFence);
+
+VkResult ivkQueuePresent(VkQueue presentQueue,
+                         VkSemaphore renderFinishedSemaphore,
+                         VkSwapchainKHR swapChain,
+                         uint32_t imageIndex);
+
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback);
 
 std::vector<const char*> ivkPopulateExtensions();

@@ -18,17 +18,23 @@ class GraphicsDevice final {
     ~GraphicsDevice();
 
   public:
-    Window createWindow(const uint32_t width,
-                             const uint32_t height,
-                             const char* name = "");
-    CommandBuffer createCommandBuffer();
+    Window createWindow(uint32_t width, uint32_t height, const char* name = "");
+    CommandBuffer createCommandBuffer(); // TODO: do not copy
     Shader createShader(const std::string& path, ShaderStage stage);
     RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader, Window window);
     Semaphore createSemaphore();
     Fence createFence();
 
+    void waitDeviceIdle();
     void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true);
     void resetFences(Fence fence, uint32_t fenceCount);
+
+    CommandBuffer getNextCommandBuffer(); // TODO: do not copy
+    void submit(CommandBuffer& commandBuffer) const;
+
+    bool isWindowOpen(Window window) const;
+    uint32_t getNextImage(Window window);
+    void presentImage(Window window, uint32_t imageIndex);
 
     VkDevice getVkDevice() const { return m_device; }
     VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
@@ -39,18 +45,25 @@ class GraphicsDevice final {
     void free(Semaphore semaphore);
     void free(Fence fence);
 
+    uint32_t m_currentFrame = 0;
+
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDevice m_device                 = VK_NULL_HANDLE;
     VkCommandPool m_commandPool       = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
-    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
     VkQueue m_graphicsQueue   = VK_NULL_HANDLE;
     uint32_t m_graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
-    
+
+    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
+
+    std::vector<CommandBuffer> m_commandBuffers;
+    std::vector<Fence> m_inFlightFences;
+    std::vector<Semaphore> m_imageAvailableSemaphores;
+    std::vector<Semaphore> m_renderFinishedSemaphores;
+
   private:
     VkCommandPool _createCommandPool();
 };

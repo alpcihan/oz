@@ -6,6 +6,8 @@
 namespace oz::gfx::vk {
 
 namespace {
+static constexpr int FRAMES_IN_FLIGHT = 2;
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -63,12 +65,36 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 
     // create a command pool
     m_commandPool = _createCommandPool();
+
+    // current frame
+    m_currentFrame = 0;
+
+    // command buffers
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++)
+        m_commandBuffers.emplace_back(std::move(createCommandBuffer()));
+
+    // synchronization
+    for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        m_imageAvailableSemaphores.push_back(createSemaphore());
+        m_renderFinishedSemaphores.push_back(createSemaphore());
+        m_inFlightFences.push_back(createFence());
+    }
 }
 
 GraphicsDevice::~GraphicsDevice() {
     // command pool
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     m_commandPool = VK_NULL_HANDLE;
+
+    // synchronization
+    for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        free(m_renderFinishedSemaphores[i]);
+        free(m_imageAvailableSemaphores[i]);
+        free(m_inFlightFences[i]);
+    }
+    m_renderFinishedSemaphores.clear();
+    m_imageAvailableSemaphores.clear();
+    m_inFlightFences.clear();
 
     // device
     vkDestroyDevice(m_device, nullptr);
@@ -318,6 +344,8 @@ Semaphore GraphicsDevice::createSemaphore() {
     return semaphore;
 }
 
+void GraphicsDevice::waitDeviceIdle() { vkDeviceWaitIdle(m_device); }
+
 Fence GraphicsDevice::createFence() {
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -338,6 +366,59 @@ void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) 
 
 void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) {
     vkResetFences(m_device, fenceCount, &fence->vkFence);
+}
+
+CommandBuffer GraphicsDevice::getNextCommandBuffer() {
+    return m_commandBuffers[m_currentFrame];
+}
+
+void GraphicsDevice::submit(CommandBuffer& commandBuffer) const {
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount     = 1;
+    submitInfo.pWaitSemaphores        = &m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore;
+    submitInfo.pWaitDstStageMask      = waitStages;
+    submitInfo.commandBufferCount     = 1;
+    submitInfo.pCommandBuffers        = &commandBuffer.m_vkCommandBuffer;
+    submitInfo.signalSemaphoreCount   = 1;
+    submitInfo.pSignalSemaphores      = &m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore;
+
+    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]->vkFence) != VK_SUCCESS) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
+bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
+
+uint32_t GraphicsDevice::getNextImage(Window window) {
+    glfwPollEvents();
+
+    waitFences(m_inFlightFences[m_currentFrame], 1);
+    resetFences(m_inFlightFences[m_currentFrame], 1);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(m_device, window->vkSwapChain, UINT64_MAX,
+                          m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    return imageIndex;
+}
+
+void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores    = &m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore;
+
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains    = &window->vkSwapChain;
+    presentInfo.pImageIndices  = &imageIndex;
+    presentInfo.pResults       = nullptr; // optional
+
+    vkQueuePresentKHR(window->vkPresentQueue, &presentInfo);
+
+    m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
 void GraphicsDevice::free(Window window) {
@@ -394,6 +475,7 @@ void GraphicsDevice::free(Semaphore semaphore) {
     vkDestroySemaphore(m_device, semaphore->vkSemaphore, nullptr);
     delete semaphore;
 }
+
 void GraphicsDevice::free(Fence fence) {
     vkDestroyFence(m_device, fence->vkFence, nullptr);
     delete fence;

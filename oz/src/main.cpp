@@ -5,8 +5,8 @@ int main() {
     GraphicsDevice device(true);
     Window window = device.createWindow(800, 600, "oz");
 
-    Shader vertShader     = device.createShader("default_vert.spv", ShaderStage::Vertex);
-    Shader fragShader     = device.createShader("default_frag.spv", ShaderStage::Fragment);
+    Shader vertShader     = device.createShader("default.vert", ShaderStage::Vertex);
+    Shader fragShader     = device.createShader("default.frag", ShaderStage::Fragment);
     RenderPass renderPass = device.createRenderPass(vertShader, fragShader, window);
 
     while (device.isWindowOpen(window)) {

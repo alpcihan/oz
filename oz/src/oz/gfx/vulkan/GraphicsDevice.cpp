@@ -276,7 +276,7 @@ CommandBuffer GraphicsDevice::createCommandBuffer() { return {m_device, m_comman
 
 Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) {
     std::string absolutePath = file::getBuildPath() + "/oz/resources/shaders/";
-    absolutePath += path;
+    absolutePath += path + ".spv";
     auto code = file::readFile(absolutePath);
 
     VkShaderModule shaderModule;

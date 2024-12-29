@@ -15,7 +15,7 @@ foreach(GLSL ${GLSL_SHADERS})
     get_filename_component(FILE_NAME ${GLSL} NAME_WE)
     get_filename_component(FILE_EXT ${GLSL} LAST_EXT)
     string(REPLACE "." "" FILE_TYPE ${FILE_EXT})
-    set(SPIRV "${FILE_NAME}_${FILE_TYPE}.spv")
+    set(SPIRV "${FILE_NAME}.${FILE_TYPE}.spv")
     add_custom_command( OUTPUT ${SPIRV}
                         COMMAND ${GLSLC} ${GLSL} -O -o ${SPIRV}
                         DEPENDS ${GLSL})

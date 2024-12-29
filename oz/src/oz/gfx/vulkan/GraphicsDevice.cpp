@@ -299,8 +299,8 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
     renderPass->vkRenderPass       = vkRenderPass;
     renderPass->vkPipelineLayout   = vkPipelineLayout;
     renderPass->vkGraphicsPipeline = vkGraphicsPipeline;
-    renderPass->vkFrameBuffers     = vkFrameBuffers;
     renderPass->vkExtent           = window->vkSwapChainExtent;
+    renderPass->vkFrameBuffers     = std::move(vkFrameBuffers);
 
     return renderPass;
 }

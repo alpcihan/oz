@@ -25,27 +25,22 @@ class GraphicsDevice final {
     Semaphore createSemaphore();
     Fence createFence();
 
-    void waitDeviceIdle();
-    void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true);
-    void resetFences(Fence fence, uint32_t fenceCount);
+    void waitIdle() const;
+    void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true) const;
+    void resetFences(Fence fence, uint32_t fenceCount) const;
 
-    CommandBuffer getNextCommandBuffer(); // TODO: do not copy
+    CommandBuffer getNextCommandBuffer() const; // TODO: do not copy
     void submit(CommandBuffer& commandBuffer) const;
 
     bool isWindowOpen(Window window) const;
-    uint32_t getNextImage(Window window);
+    uint32_t getNextImage(Window window) const;
     void presentImage(Window window, uint32_t imageIndex);
 
-    VkDevice getVkDevice() const { return m_device; }
-    VkQueue getVkGraphicsQueue() const { return m_graphicsQueue; }
-
-    void free(Window window);
-    void free(Shader shader);
-    void free(RenderPass renderPass);
-    void free(Semaphore semaphore);
-    void free(Fence fence);
-
-    uint32_t m_currentFrame = 0;
+    void free(Window window) const;
+    void free(Shader shader) const;
+    void free(RenderPass renderPass) const;
+    void free(Semaphore semaphore) const;
+    void free(Fence fence) const;
 
   private:
     VkInstance m_instance             = VK_NULL_HANDLE;
@@ -63,6 +58,8 @@ class GraphicsDevice final {
     std::vector<Fence> m_inFlightFences;
     std::vector<Semaphore> m_imageAvailableSemaphores;
     std::vector<Semaphore> m_renderFinishedSemaphores;
+
+    uint32_t m_currentFrame = 0;
 
   private:
     VkCommandPool _createCommandPool();

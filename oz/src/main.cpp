@@ -22,7 +22,7 @@ int main() {
         device.submit(cmd);
         device.presentImage(window, imageIndex);
     }
-    device.waitDeviceIdle();
+    device.waitIdle();
 
     device.free(vertShader);
     device.free(fragShader);

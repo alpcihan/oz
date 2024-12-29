@@ -344,7 +344,7 @@ Semaphore GraphicsDevice::createSemaphore() {
     return semaphore;
 }
 
-void GraphicsDevice::waitDeviceIdle() { vkDeviceWaitIdle(m_device); }
+void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
 
 Fence GraphicsDevice::createFence() {
     VkFenceCreateInfo fenceInfo{};
@@ -360,17 +360,15 @@ Fence GraphicsDevice::createFence() {
     return fence;
 }
 
-void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) {
+void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) const {
     vkWaitForFences(m_device, fenceCount, &fence->vkFence, waitAll ? VK_TRUE : VK_FALSE, UINT64_MAX);
 }
 
-void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) {
+void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) const {
     vkResetFences(m_device, fenceCount, &fence->vkFence);
 }
 
-CommandBuffer GraphicsDevice::getNextCommandBuffer() {
-    return m_commandBuffers[m_currentFrame];
-}
+CommandBuffer GraphicsDevice::getNextCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
 
 void GraphicsDevice::submit(CommandBuffer& commandBuffer) const {
     VkSubmitInfo submitInfo{};
@@ -392,7 +390,7 @@ void GraphicsDevice::submit(CommandBuffer& commandBuffer) const {
 
 bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
 
-uint32_t GraphicsDevice::getNextImage(Window window) {
+uint32_t GraphicsDevice::getNextImage(Window window) const {
     glfwPollEvents();
 
     waitFences(m_inFlightFences[m_currentFrame], 1);
@@ -421,7 +419,7 @@ void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
-void GraphicsDevice::free(Window window) {
+void GraphicsDevice::free(Window window) const {
     // swap chain
     vkDestroySwapchainKHR(m_device, window->vkSwapChain, nullptr);
     window->vkSwapChain = VK_NULL_HANDLE;
@@ -453,12 +451,12 @@ void GraphicsDevice::free(Window window) {
     delete window;
 }
 
-void GraphicsDevice::free(Shader shader) {
+void GraphicsDevice::free(Shader shader) const {
     vkDestroyShaderModule(m_device, shader->vkShaderModule, nullptr);
     delete shader;
 }
 
-void GraphicsDevice::free(RenderPass renderPass) {
+void GraphicsDevice::free(RenderPass renderPass) const {
     vkDestroyPipeline(m_device, renderPass->vkGraphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_device, renderPass->vkPipelineLayout, nullptr);
     vkDestroyRenderPass(m_device, renderPass->vkRenderPass, nullptr);
@@ -471,12 +469,12 @@ void GraphicsDevice::free(RenderPass renderPass) {
     delete renderPass;
 }
 
-void GraphicsDevice::free(Semaphore semaphore) {
+void GraphicsDevice::free(Semaphore semaphore) const {
     vkDestroySemaphore(m_device, semaphore->vkSemaphore, nullptr);
     delete semaphore;
 }
 
-void GraphicsDevice::free(Fence fence) {
+void GraphicsDevice::free(Fence fence) const {
     vkDestroyFence(m_device, fence->vkFence, nullptr);
     delete fence;
 }

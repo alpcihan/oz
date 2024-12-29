@@ -9,12 +9,12 @@ int main() {
 
     // init
     std::unique_ptr<oz::gfx::vk::GraphicsDevice> device = std::make_unique<oz::gfx::vk::GraphicsDevice>(true);
-    GLFWwindow* window                              = device->createWindow(800, 600, "oz");
+    oz::gfx::vk::Window window                                       = device->createWindow(800, 600, "oz");
 
     oz::gfx::vk::Shader vertShader = device->createShader("default_vert.spv", oz::gfx::vk::ShaderStage::Vertex);
     oz::gfx::vk::Shader fragShader = device->createShader("default_frag.spv", oz::gfx::vk::ShaderStage::Fragment);
 
-    oz::gfx::vk::RenderPass renderPass = device->createRenderPass(vertShader, fragShader);
+    oz::gfx::vk::RenderPass renderPass = device->createRenderPass(vertShader, fragShader, window);
     device->free(vertShader);
     device->free(fragShader);
 
@@ -32,14 +32,14 @@ int main() {
     }
 
     // main loop
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window->vkWindow)) {
         glfwPollEvents();
 
         device->waitFences(inFlightFences[currentFrame], 1);
         device->resetFences(inFlightFences[currentFrame], 1);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(device->getVkDevice(), device->getVkSwapchain(), UINT64_MAX,
+        vkAcquireNextImageKHR(device->getVkDevice(), window->vkSwapChain, UINT64_MAX,
                               imageAvailableSemaphores[currentFrame]->vkSemaphore, VK_NULL_HANDLE, &imageIndex);
 
         auto& cmd = commandBuffers[currentFrame];
@@ -74,13 +74,13 @@ int main() {
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores    = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {device->getVkSwapchain()};
+        VkSwapchainKHR swapChains[] = {window->vkSwapChain};
         presentInfo.swapchainCount  = 1;
         presentInfo.pSwapchains     = swapChains;
         presentInfo.pImageIndices   = &imageIndex;
         presentInfo.pResults        = nullptr; // optional
 
-        vkQueuePresentKHR(device->getVkPresentQueue(), &presentInfo);
+        vkQueuePresentKHR(window->vkPresentQueue, &presentInfo);
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -94,6 +94,7 @@ int main() {
         device->free(inFlightFences[i]);
     }
 
+    device->free(window);
     device->free(renderPass);
 
     return 0;

@@ -1,0 +1,24 @@
+Language: Cpp
+IndentWidth: 4
+# ContinuationIndentWidth: 4
+ColumnLimit: 120
+
+BinPackParameters: false
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+#AlignAfterOpenBracket: AlwaysBreak
+AllowAllParametersOfDeclarationOnNextLine: true
+AlignEscapedNewlines: Left
+AlignAccessSpecifier: Left
+
+PenaltyReturnTypeOnItsOwnLine: 9999
+
+# AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments: true
+# AlignConsecutiveParameters: true
+
+# BreakBeforeBraces: Stroustrup
+
+InsertTrailingNewline: false

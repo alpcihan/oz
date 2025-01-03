@@ -1,6 +1,6 @@
 #include "oz/gfx/vulkan/GraphicsDevice.h"
 #include "oz/core/file/file.h"
-#include "oz/gfx/vulkan/vk_data.h"
+#include "oz/gfx/vulkan/vk_objects_internal.h"
 #include "oz/gfx/vulkan/vk_utils.h"
 
 namespace oz::gfx::vk {
@@ -258,7 +258,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
         }
     }
 
-    Window window                  = OZ_CREATE_VK_DATA(Window);
+    Window window                  = OZ_CREATE_VK_OBJECT(Window);
     window->vkWindow               = vkWindow;
     window->vkSurface              = vkSurface;
     window->vkSwapChain            = vkSwapChain;
@@ -276,7 +276,7 @@ CommandBuffer GraphicsDevice::createCommandBuffer() {
     VkCommandBuffer vkCommandBuffer;
     assert(ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &vkCommandBuffer) == VK_SUCCESS);
 
-    CommandBuffer commandBuffer    = OZ_CREATE_VK_DATA(CommandBuffer);
+    CommandBuffer commandBuffer    = OZ_CREATE_VK_OBJECT(CommandBuffer);
     commandBuffer->vkCommandBuffer = vkCommandBuffer;
     return commandBuffer;
 }
@@ -296,7 +296,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
 
-    Shader shaderData                           = OZ_CREATE_VK_DATA(Shader);
+    Shader shaderData                           = OZ_CREATE_VK_OBJECT(Shader);
     shaderData->stage                           = stage;
     shaderData->vkShaderModule                  = shaderModule;
     shaderData->vkPipelineShaderStageCreateInfo = shaderStageInfo;
@@ -326,7 +326,7 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
                                     &vkFrameBuffers[i]) == VK_SUCCESS);
     }
 
-    RenderPass renderPass          = OZ_CREATE_VK_DATA(RenderPass);
+    RenderPass renderPass          = OZ_CREATE_VK_OBJECT(RenderPass);
     renderPass->vkRenderPass       = vkRenderPass;
     renderPass->vkPipelineLayout   = vkPipelineLayout;
     renderPass->vkGraphicsPipeline = vkGraphicsPipeline;
@@ -340,7 +340,7 @@ Semaphore GraphicsDevice::createSemaphore() {
     VkSemaphore vkSemaphore;
     assert(ivkCreateSemaphore(m_device, &vkSemaphore) == VK_SUCCESS);
 
-    Semaphore semaphore    = OZ_CREATE_VK_DATA(Semaphore);
+    Semaphore semaphore    = OZ_CREATE_VK_OBJECT(Semaphore);
     semaphore->vkSemaphore = vkSemaphore;
 
     return semaphore;
@@ -352,7 +352,7 @@ Fence GraphicsDevice::createFence() {
     VkFence vkFence;
     assert(ivkCreateFence(m_device, &vkFence) == VK_SUCCESS);
 
-    Fence fence    = OZ_CREATE_VK_DATA(Fence);
+    Fence fence    = OZ_CREATE_VK_OBJECT(Fence);
     fence->vkFence = vkFence;
 
     return fence;
@@ -450,12 +450,12 @@ void GraphicsDevice::draw(CommandBuffer cmd,
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void GraphicsDevice::free(Window window) const { OZ_FREE_VK_DATA(window); }
-void GraphicsDevice::free(Shader shader) const { OZ_FREE_VK_DATA(shader); }
-void GraphicsDevice::free(RenderPass renderPass) const { OZ_FREE_VK_DATA(renderPass) }
-void GraphicsDevice::free(Semaphore semaphore) const { OZ_FREE_VK_DATA(semaphore); }
-void GraphicsDevice::free(Fence fence) const { OZ_FREE_VK_DATA(fence); }
-void GraphicsDevice::free(CommandBuffer commandBuffer) const { OZ_FREE_VK_DATA(commandBuffer); }
+void GraphicsDevice::free(Window window) const { OZ_FREE_VK_OBJECT(m_device, window); }
+void GraphicsDevice::free(Shader shader) const { OZ_FREE_VK_OBJECT(m_device, shader); }
+void GraphicsDevice::free(RenderPass renderPass) const { OZ_FREE_VK_OBJECT(m_device, renderPass) }
+void GraphicsDevice::free(Semaphore semaphore) const { OZ_FREE_VK_OBJECT(m_device, semaphore); }
+void GraphicsDevice::free(Fence fence) const { OZ_FREE_VK_OBJECT(m_device, fence); }
+void GraphicsDevice::free(CommandBuffer commandBuffer) const { OZ_FREE_VK_OBJECT(m_device, commandBuffer); }
 
 VkCommandPool GraphicsDevice::_createCommandPool() {
     VkCommandPool commandPool = VK_NULL_HANDLE;

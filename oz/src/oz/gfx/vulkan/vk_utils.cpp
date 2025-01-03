@@ -2,12 +2,12 @@
 
 namespace oz::gfx::vk {
 
-VkResult ivkCreateInstance(uint32_t extensionCount,
-                           const char* const* extensionNames,
-                           uint32_t layerCount,
-                           const char* const* layerNames,
+VkResult ivkCreateInstance(uint32_t                            extensionCount,
+                           const char* const*                  extensionNames,
+                           uint32_t                            layerCount,
+                           const char* const*                  layerNames,
                            VkDebugUtilsMessengerCreateInfoEXT* debugCreateInfo,
-                           VkInstance* outInstance) {
+                           VkInstance*                         outInstance) {
     // app info
     const VkApplicationInfo appInfo{.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                                     .pApplicationName   = "oz",
@@ -28,19 +28,19 @@ VkResult ivkCreateInstance(uint32_t extensionCount,
     return vkCreateInstance(&createInfo, nullptr, outInstance);
 }
 
-VkResult ivkCreateDebugMessenger(VkInstance instance,
+VkResult ivkCreateDebugMessenger(VkInstance                                instance,
                                  const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo,
-                                 VkDebugUtilsMessengerEXT* outDebugMessenger) {
+                                 VkDebugUtilsMessengerEXT*                 outDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     // TODO: check func != nullptr
     return func(instance, &debugCreateInfo, nullptr, outDebugMessenger);
 }
 
-bool ivkPickPhysicalDevice(VkInstance instance,
-                           const std::vector<const char*>& requiredExtensions,
-                           VkPhysicalDevice* outPhysicalDevice,
+bool ivkPickPhysicalDevice(VkInstance                            instance,
+                           const std::vector<const char*>&       requiredExtensions,
+                           VkPhysicalDevice*                     outPhysicalDevice,
                            std::vector<VkQueueFamilyProperties>* outQueueFamilies,
-                           uint32_t* outGraphicsFamily) {
+                           uint32_t*                             outGraphicsFamily) {
     // get physical devices
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -53,7 +53,7 @@ bool ivkPickPhysicalDevice(VkInstance instance,
     for (const auto& physicalDevice : physicalDevices) {
         // check queue family support
         std::optional<uint32_t> graphicsFamily;
-        uint32_t queueFamilyCount = 0;
+        uint32_t                queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
         outQueueFamilies->resize(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, outQueueFamilies->data());
@@ -97,11 +97,11 @@ bool ivkPickPhysicalDevice(VkInstance instance,
     return isGPUFound;
 }
 
-VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
-                                const std::vector<uint32_t>& uniqueQueueFamilies,
+VkResult ivkCreateLogicalDevice(VkPhysicalDevice                physicalDevice,
+                                const std::vector<uint32_t>&    uniqueQueueFamilies,
                                 const std::vector<const char*>& requiredExtensions,
                                 const std::vector<const char*>& validationLayers,
-                                VkDevice* outDevice) {
+                                VkDevice*                       outDevice) {
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
@@ -128,15 +128,15 @@ VkResult ivkCreateLogicalDevice(VkPhysicalDevice physicalDevice,
     return vkCreateDevice(physicalDevice, &createInfo, nullptr, outDevice);
 }
 
-VkResult ivkCreateSwapChain(VkDevice device,
-                            VkSurfaceKHR surface,
-                            VkSurfaceFormatKHR& surfaceFormat,
-                            VkPresentModeKHR presentMode,
+VkResult ivkCreateSwapChain(VkDevice                      device,
+                            VkSurfaceKHR                  surface,
+                            VkSurfaceFormatKHR&           surfaceFormat,
+                            VkPresentModeKHR              presentMode,
                             VkSurfaceTransformFlagBitsKHR preTransform,
-                            uint32_t imageCount,
+                            uint32_t                      imageCount,
                             const uint32_t (&queueFamilyIndices)[2],
                             const VkExtent2D& extent,
-                            VkSwapchainKHR* outSwapChain) {
+                            VkSwapchainKHR*   outSwapChain) {
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface          = surface;
@@ -184,10 +184,10 @@ VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkI
     return vkCreateImageView(device, &createInfo, nullptr, outSwapChainImageView);
 }
 
-VkResult ivkCreateFramebuffer(VkDevice device,
-                              VkRenderPass renderPass,
-                              VkExtent2D swapchainExtent,
-                              VkImageView imageView,
+VkResult ivkCreateFramebuffer(VkDevice       device,
+                              VkRenderPass   renderPass,
+                              VkExtent2D     swapchainExtent,
+                              VkImageView    imageView,
                               VkFramebuffer* outFramebuffer) {
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -253,13 +253,13 @@ VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkR
     return vkCreateRenderPass(device, &renderPassInfo, nullptr, outRenderPass);
 }
 
-VkResult ivkCreateGraphicsPipeline(VkDevice device,
+VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
                                    VkPipelineShaderStageCreateInfo* shaderStages,
-                                   uint32_t stageCount,
-                                   VkExtent2D swapChainExtent,
-                                   VkPipelineLayout pipelineLayout,
-                                   VkRenderPass renderPass,
-                                   VkPipeline* outGraphicsPipeline) {
+                                   uint32_t                         stageCount,
+                                   VkExtent2D                       swapChainExtent,
+                                   VkPipelineLayout                 pipelineLayout,
+                                   VkRenderPass                     renderPass,
+                                   VkPipeline*                      outGraphicsPipeline) {
     std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -351,9 +351,9 @@ VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkComm
     return vkCreateCommandPool(device, &poolInfo, nullptr, outCommandPool);
 }
 
-VkResult ivkAllocateCommandBuffers(VkDevice device,
-                                   VkCommandPool commandPool,
-                                   uint32_t commandBufferCount,
+VkResult ivkAllocateCommandBuffers(VkDevice         device,
+                                   VkCommandPool    commandPool,
+                                   uint32_t         commandBufferCount,
                                    VkCommandBuffer* outCommandBuffers) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -364,7 +364,10 @@ VkResult ivkAllocateCommandBuffers(VkDevice device,
     return vkAllocateCommandBuffers(device, &allocInfo, outCommandBuffers);
 }
 
-VkResult ivkCreateShaderModule(VkDevice device, size_t codeSize, const uint32_t* code, VkShaderModule* outShaderModule) {
+VkResult ivkCreateShaderModule(VkDevice        device,
+                               size_t          codeSize,
+                               const uint32_t* code,
+                               VkShaderModule* outShaderModule) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = codeSize;
@@ -388,12 +391,12 @@ VkResult ivkCreateSemaphore(VkDevice device, VkSemaphore* outSemaphore) {
     return vkCreateSemaphore(device, &semaphoreInfo, nullptr, outSemaphore);
 }
 
-VkResult ivkQueueSubmit(VkQueue graphicsQueue,
-                        VkSemaphore imageAvailableSemaphore,
+VkResult ivkQueueSubmit(VkQueue              graphicsQueue,
+                        VkSemaphore          imageAvailableSemaphore,
                         VkPipelineStageFlags waitStage,
-                        VkCommandBuffer commandBuffer,
-                        VkSemaphore renderFinishedSemaphore,
-                        VkFence inFlightFence) {
+                        VkCommandBuffer      commandBuffer,
+                        VkSemaphore          renderFinishedSemaphore,
+                        VkFence              inFlightFence) {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -408,10 +411,10 @@ VkResult ivkQueueSubmit(VkQueue graphicsQueue,
     return vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
 }
 
-VkResult ivkQueuePresent(VkQueue presentQueue,
-                         VkSemaphore renderFinishedSemaphore,
+VkResult ivkQueuePresent(VkQueue        presentQueue,
+                         VkSemaphore    renderFinishedSemaphore,
                          VkSwapchainKHR swapChain,
-                         uint32_t imageIndex) {
+                         uint32_t       imageIndex) {
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
@@ -443,8 +446,8 @@ std::vector<const char*> ivkPopulateExtensions() {
 }
 
 std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions,
-                                                       uint32_t extensionCount,
-                                                       bool isValidationLayerEnabled) {
+                                                       uint32_t     extensionCount,
+                                                       bool         isValidationLayerEnabled) {
     std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
 
     if (isValidationLayerEnabled) {

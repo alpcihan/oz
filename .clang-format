@@ -14,10 +14,12 @@ AlignEscapedNewlines: Left
 AlignAccessSpecifier: Left
 
 PenaltyReturnTypeOnItsOwnLine: 9999
+PenaltyBreakBeforeFirstCallParameter: 9999
+PenaltyBreakFirstParameter: 9999
 
-# AlignConsecutiveDeclarations: true
+AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments: true
-# AlignConsecutiveParameters: true
+AlignConsecutiveParameters: true
 
 # BreakBeforeBraces: Stroustrup
 

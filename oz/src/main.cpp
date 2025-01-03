@@ -1,4 +1,4 @@
-#include "oz/gfx/vulkan/GraphicsDevice.h"
+#include "oz/oz.h"
 using namespace oz::gfx::vk;
 
 int main() {

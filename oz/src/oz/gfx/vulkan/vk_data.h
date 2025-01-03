@@ -93,6 +93,14 @@ struct WindowData final : IVkData {
     }
 };
 
+struct CommandBufferData final : IVkData {
+    VkCommandBuffer vkCommandBuffer = VK_NULL_HANDLE;
+
+    void free(VkDevice vkDevice) override {
+
+    }
+};
+
 #define OZ_CREATE_VK_DATA(TYPE) new TYPE##Data
 
 #define OZ_FREE_VK_DATA(vkData) \

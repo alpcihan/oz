@@ -10,16 +10,16 @@ int main() {
     RenderPass renderPass = device.createRenderPass(vertShader, fragShader, window);
 
     while (device.isWindowOpen(window)) {
-        uint32_t imageIndex = device.getNextImage(window);
+        uint32_t imageIndex = device.getCurrentImage(window);
+        CommandBuffer cmd = device.getCurrentCommandBuffer();
 
-        auto cmd = device.getNextCommandBuffer();
-        cmd.begin();
-        cmd.beginRenderPass(renderPass, imageIndex);
-        cmd.draw(3);
-        cmd.endRenderPass();
-        cmd.end();
+        device.beginCmd(cmd);
+        device.beginRenderPass(cmd, renderPass, imageIndex);
+        device.draw(cmd, 3);
+        device.endRenderPass(cmd);
+        device.endCmd(cmd);
 
-        device.submit(cmd);
+        device.submitCmd(cmd);
         device.presentImage(window, imageIndex);
     }
     device.waitIdle();

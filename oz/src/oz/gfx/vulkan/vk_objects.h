@@ -13,5 +13,6 @@ OZ_VK_OBJECT(Shader);
 OZ_VK_OBJECT(RenderPass);
 OZ_VK_OBJECT(Fence);
 OZ_VK_OBJECT(Semaphore);
+OZ_VK_OBJECT(CommandBuffer);
 
 } // namespace oz::gfx::vk

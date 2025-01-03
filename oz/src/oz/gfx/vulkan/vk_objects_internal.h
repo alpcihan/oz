@@ -4,12 +4,12 @@
 
 namespace oz::gfx::vk {
 
-struct IVkData {
-    virtual ~IVkData()                   = default;
+struct IObject {
+    virtual ~IObject()                   = default;
     virtual void free(VkDevice vkDevice) = 0;
 };
 
-struct ShaderData final : IVkData {
+struct ShaderObject final : IObject {
     ShaderStage stage;
 
     VkShaderModule                  vkShaderModule                  = VK_NULL_HANDLE;
@@ -18,7 +18,7 @@ struct ShaderData final : IVkData {
     void free(VkDevice vkDevice) override { vkDestroyShaderModule(vkDevice, vkShaderModule, nullptr); }
 };
 
-struct RenderPassData final : IVkData {
+struct RenderPassObject final : IObject {
     VkRenderPass               vkRenderPass       = VK_NULL_HANDLE;
     VkPipelineLayout           vkPipelineLayout   = VK_NULL_HANDLE;
     VkPipeline                 vkGraphicsPipeline = VK_NULL_HANDLE;
@@ -36,20 +36,19 @@ struct RenderPassData final : IVkData {
     }
 };
 
-struct SemaphoreData final : IVkData {
+struct SemaphoreObject final : IObject {
     VkSemaphore vkSemaphore = VK_NULL_HANDLE;
     // TODO: only vkSemaphore is supported
-
     void free(VkDevice vkDevice) override { vkDestroySemaphore(vkDevice, vkSemaphore, nullptr); }
 };
 
-struct FenceData final : IVkData {
+struct FenceObject final : IObject {
     VkFence vkFence = VK_NULL_HANDLE;
     // TODO: only vkFence is supported
     void free(VkDevice vkDevice) override { vkDestroyFence(vkDevice, vkFence, nullptr); }
 };
 
-struct WindowData final : IVkData {
+struct WindowObject final : IObject {
     GLFWwindow*  vkWindow  = nullptr;
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
 
@@ -89,19 +88,19 @@ struct WindowData final : IVkData {
     }
 };
 
-struct CommandBufferData final : IVkData {
+struct CommandBufferObject final : IObject {
     VkCommandBuffer vkCommandBuffer = VK_NULL_HANDLE;
 
     void free(VkDevice vkDevice) override {}
 };
 
-#define OZ_CREATE_VK_DATA(TYPE) new TYPE##Data
+#define OZ_CREATE_VK_OBJECT(TYPE) new TYPE##Object
 
-#define OZ_FREE_VK_DATA(vkData) \
-    if (vkData) {               \
-        vkData->free(m_device); \
-        delete vkData;          \
-        vkData = nullptr;       \
+#define OZ_FREE_VK_OBJECT(vkDevice, vkObject) \
+    if (vkObject) {               \
+        vkObject->free(vkDevice); \
+        delete vkObject;          \
+        vkObject = nullptr;       \
     }
 
 } // namespace oz::gfx::vk

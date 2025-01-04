@@ -16,28 +16,29 @@ class GraphicsDevice final {
     ~GraphicsDevice();
 
   public:
-    // create
+    // create //
     Window        createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer createCommandBuffer();
     Shader        createShader(const std::string& path, ShaderStage stage);
-    RenderPass    createRenderPass(Shader vertexShader, Shader fragmentShader, Window window);
+    RenderPass    createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, VkPipelineVertexInputStateCreateInfo* vertexInputInfo);
     Semaphore     createSemaphore();
     Fence         createFence();
+    Buffer        createBuffer(VkBuffer vkBuffer);
 
-    // sync
+    // sync //
     void waitIdle() const;
     void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true) const;
     void resetFences(Fence fence, uint32_t fenceCount) const;
 
-    // state getters
+    // state getters //
     CommandBuffer getCurrentCommandBuffer();
     uint32_t      getCurrentImage(Window window) const;
 
-    // window
+    // window //
     bool isWindowOpen(Window window) const;
     void presentImage(Window window, uint32_t imageIndex);
 
-    // commands
+    // commands //
     void beginCmd(CommandBuffer cmd) const;
     void endCmd(CommandBuffer cmd) const;
     void submitCmd(CommandBuffer cmd) const;
@@ -48,19 +49,23 @@ class GraphicsDevice final {
               uint32_t      instanceCount = 1,
               uint32_t      firstVertex   = 0,
               uint32_t      firstInstance = 0) const;
-
-    // free
+    void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
+    
+    // free //
     void free(Window window) const;
     void free(Shader shader) const;
     void free(RenderPass renderPass) const;
     void free(Semaphore semaphore) const;
     void free(Fence fence) const;
     void free(CommandBuffer commandBuffer) const;
+    void free(Buffer buffer) const;
+
+  public:
+    VkDevice m_device = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 
   private:
     VkInstance       m_instance       = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice         m_device         = VK_NULL_HANDLE;
     VkCommandPool    m_commandPool    = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
@@ -75,9 +80,6 @@ class GraphicsDevice final {
     std::vector<Semaphore>     m_renderFinishedSemaphores;
 
     uint32_t m_currentFrame = 0;
-
-  private:
-    VkCommandPool _createCommandPool();
 };
 
 } // namespace oz::gfx::vk

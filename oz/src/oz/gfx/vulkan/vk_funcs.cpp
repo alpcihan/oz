@@ -1,4 +1,4 @@
-#include "oz/gfx/vulkan/vk_utils.h"
+#include "oz/gfx/vulkan/vk_funcs.h"
 
 namespace oz::gfx::vk {
 
@@ -204,10 +204,10 @@ VkResult ivkCreateFramebuffer(VkDevice       device,
 VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineLayout) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount         = 0;       // No descriptor sets
-    pipelineLayoutInfo.pSetLayouts            = nullptr; // No descriptor set layouts
-    pipelineLayoutInfo.pushConstantRangeCount = 0;       // No push constant ranges
-    pipelineLayoutInfo.pPushConstantRanges    = nullptr; // No push constants
+    pipelineLayoutInfo.setLayoutCount         = 0;
+    pipelineLayoutInfo.pSetLayouts            = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges    = nullptr;
 
     return vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, outPipelineLayout);
 }
@@ -259,6 +259,7 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
                                    VkExtent2D                       swapChainExtent,
                                    VkPipelineLayout                 pipelineLayout,
                                    VkRenderPass                     renderPass,
+                                   VkPipelineVertexInputStateCreateInfo* vertexInputInfo,
                                    VkPipeline*                      outGraphicsPipeline) {
     std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
@@ -267,12 +268,6 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates    = dynamicStates.data();
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount   = 0;
-    vertexInputInfo.pVertexBindingDescriptions      = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions    = nullptr;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -328,7 +323,7 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
     pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount          = stageCount;
     pipelineInfo.pStages             = shaderStages;
-    pipelineInfo.pVertexInputState   = &vertexInputInfo;
+    pipelineInfo.pVertexInputState   = vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState      = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;

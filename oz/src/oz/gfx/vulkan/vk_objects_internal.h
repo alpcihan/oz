@@ -94,6 +94,14 @@ struct CommandBufferObject final : IObject {
     void free(VkDevice vkDevice) override {}
 };
 
+struct BufferObject final : IObject {
+    VkBuffer vkBuffer = VK_NULL_HANDLE;
+
+    void free(VkDevice vkDevice) override {
+        
+    }
+};
+
 #define OZ_CREATE_VK_OBJECT(TYPE) new TYPE##Object
 
 #define OZ_FREE_VK_OBJECT(vkDevice, vkObject) \

@@ -49,13 +49,14 @@ VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineL
 
 VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkRenderPass* outRenderPass);
 
-VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
-                                   VkPipelineShaderStageCreateInfo* shaderStages,
-                                   uint32_t                         stageCount,
-                                   VkExtent2D                       swapChainExtent,
-                                   VkPipelineLayout                 pipelineLayout,
-                                   VkRenderPass                     renderPass,
-                                   VkPipeline*                      outGraphicsPipeline);
+VkResult ivkCreateGraphicsPipeline(VkDevice                              device,
+                                   VkPipelineShaderStageCreateInfo*      shaderStages,
+                                   uint32_t                              stageCount,
+                                   VkExtent2D                            swapChainExtent,
+                                   VkPipelineLayout                      pipelineLayout,
+                                   VkRenderPass                          renderPass,
+                                   VkPipelineVertexInputStateCreateInfo* vertexInputInfo,
+                                   VkPipeline*                           outGraphicsPipeline);
 
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool* outCommandPool);
 

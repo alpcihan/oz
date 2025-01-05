@@ -303,10 +303,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     return shaderData;
 }
 
-RenderPass GraphicsDevice::createRenderPass(Shader                                vertexShader,
-                                            Shader                                fragmentShader,
-                                            Window                                window,
-                                            VkPipelineVertexInputStateCreateInfo* vertexInputInfo) {
+RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, VkPipelineVertexInputStateCreateInfo* vertexInputInfo) {
     // render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);

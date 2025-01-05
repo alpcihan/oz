@@ -35,6 +35,50 @@ const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
                                       {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                       {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 
+uint32_t findMemoryType(VkPhysicalDevice vkPhysicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    assert(false);
+}
+
+void createBuffer(GraphicsDevice&        device,
+                  VkDeviceSize          size,
+                  VkBufferUsageFlags    usage,
+                  VkMemoryPropertyFlags properties,
+                  VkBuffer&             buffer,
+                  VkDeviceMemory&       bufferMemory) {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size        = size;
+    bufferInfo.usage       = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(device.m_device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create buffer!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(device.m_device, buffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize  = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(device.m_physicalDevice, memRequirements.memoryTypeBits, properties);
+
+    if (vkAllocateMemory(device.m_device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate buffer memory!");
+    }
+
+    vkBindBufferMemory(device.m_device, buffer, bufferMemory, 0);
+}
+
 int main() {
     GraphicsDevice device(true);
     Window         window = device.createWindow(800, 600, "oz");
@@ -47,51 +91,15 @@ int main() {
     VkDeviceMemory vertexBufferMemory;
     // create vertex buffer
     {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size        = sizeof(vertices[0]) * vertices.size();
-        bufferInfo.usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        // create buffer //
-        if (vkCreateBuffer(device.m_device, &bufferInfo, nullptr, &vkVertexBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vertex buffer!");
-        }
-
-        // memory satisfies requirements //
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device.m_device, vkVertexBuffer, &memRequirements);
-
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(device.m_physicalDevice, &memProperties);
-
-        uint32_t              typeFilter = memRequirements.memoryTypeBits;
-        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        uint32_t              i          = 0;
-        for (; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                break;
-            }
-        }
-        assert(i <= memProperties.memoryTypeCount);
-
-        // allocate memory //
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize  = memRequirements.size;
-        allocInfo.memoryTypeIndex = i;
-
-        if (vkAllocateMemory(device.m_device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
-        }
-
-        // bind buffer memory //
-        vkBindBufferMemory(device.m_device, vkVertexBuffer, vertexBufferMemory, 0);
+        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+        createBuffer(device, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vkVertexBuffer,
+                     vertexBufferMemory);
 
         // fill the buffer //
         void* data;
-        vkMapMemory(device.m_device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+        vkMapMemory(device.m_device, vertexBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t)bufferSize);
         vkUnmapMemory(device.m_device, vertexBufferMemory);
 
         vertexBuffer = device.createBuffer(vkVertexBuffer);
@@ -101,7 +109,7 @@ int main() {
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount   = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions      = &bindingDescription;

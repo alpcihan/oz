@@ -356,18 +356,35 @@ Semaphore GraphicsDevice::createSemaphore() {
     return semaphore;
 }
 
-Buffer GraphicsDevice::createBuffer(uint64_t              size,
-                                    const void*           data,
-                                    VkBufferUsageFlags    usage,
-                                    VkMemoryPropertyFlags properties) {
-
-    // create buffer //
-    VkBufferCreateInfo bufferInfo{};
+Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const void* data) {
+    // create buffer info and memory info //
+    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    VkBufferCreateInfo    bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size        = size;
-    bufferInfo.usage       = usage;
+    bufferInfo.usage       = 0;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+    switch (bufferType) {
+    case BufferType::Vertex:
+        bufferInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        break;
+    case BufferType::Index:
+        bufferInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        break;
+    case BufferType::Staging:
+        bufferInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        break;
+    case BufferType::Uniform:
+        bufferInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    default:
+        throw std::runtime_error("Not supported buffer type!");
+        break;
+    }
+
+    // create buffer //
     VkBuffer vkBuffer;
     assert(vkCreateBuffer(m_device, &bufferInfo, nullptr, &vkBuffer) == VK_SUCCESS);
 

@@ -5,6 +5,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include "oz/base.h"
+#include "oz/common.h"
 #include "oz/gfx/vulkan/vk_enums.h"
 #include "oz/gfx/vulkan/vk_objects.h"

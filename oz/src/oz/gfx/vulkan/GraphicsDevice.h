@@ -26,7 +26,7 @@ class GraphicsDevice final {
                                    VkPipelineVertexInputStateCreateInfo* vertexInputInfo);
     Semaphore     createSemaphore();
     Fence         createFence();
-    Buffer createBuffer(uint64_t size, const void* data, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+    Buffer        createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
 
     // sync //
     void waitIdle() const;

@@ -32,12 +32,14 @@ struct Vertex {
     }
 };
 
-const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                      {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                      {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                      {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+const std::vector<Vertex> vertices       = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+VkDeviceSize              vertBufferSize = sizeof(vertices[0]) * vertices.size();
 
-const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
+const std::vector<uint16_t> indices       = {0, 1, 2, 2, 3, 0};
+VkDeviceSize                idxBufferSize = sizeof(indices[0]) * indices.size();
 
 int main() {
     GraphicsDevice device(true);
@@ -46,42 +48,19 @@ int main() {
     Shader vertShader = device.createShader("default.vert", ShaderStage::Vertex);
     Shader fragShader = device.createShader("default.frag", ShaderStage::Fragment);
 
-    Buffer vertexBuffer;
-    // create vertex buffer
-    {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    // create vertex buffer //
+    Buffer vertStageBuffer = device.createBuffer(BufferType::Staging, vertBufferSize, vertices.data());
+    Buffer vertexBuffer = device.createBuffer(BufferType::Vertex, vertBufferSize);
+    device.copyBuffer(vertStageBuffer, vertexBuffer, vertBufferSize);
+    device.free(vertStageBuffer);
 
-        Buffer stageBuffer =
-            device.createBuffer(bufferSize, vertices.data(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // create index buffer //
+    Buffer idxStageBuffer = device.createBuffer(BufferType::Staging, idxBufferSize, indices.data());
+    Buffer indexBuffer = device.createBuffer(BufferType::Index, idxBufferSize);
+    device.copyBuffer(idxStageBuffer, indexBuffer, idxBufferSize);
+    device.free(idxStageBuffer);
 
-        vertexBuffer = device.createBuffer(bufferSize, nullptr,
-                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        device.copyBuffer(stageBuffer, vertexBuffer, bufferSize);
-
-        device.free(stageBuffer);
-    }
-
-    // create index buffer
-    Buffer indexBuffer;
-    {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        Buffer stageBuffer =
-            device.createBuffer(bufferSize, indices.data(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        indexBuffer = device.createBuffer(bufferSize, nullptr,
-                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        device.copyBuffer(stageBuffer, indexBuffer, bufferSize);
-
-        device.free(stageBuffer);
-    }
-
+    // pipeline vertex input //
     auto bindingDescription    = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
@@ -92,6 +71,7 @@ int main() {
     vertexInputInfo.pVertexBindingDescriptions      = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
 
+    // create render pass //
     RenderPass renderPass = device.createRenderPass(vertShader, fragShader, window, &vertexInputInfo);
 
     while (device.isWindowOpen(window)) {

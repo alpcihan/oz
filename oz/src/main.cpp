@@ -5,31 +5,7 @@ using namespace oz::gfx::vk;
 
 struct Vertex {
     glm::vec2 pos;
-    glm::vec3 color;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding   = 0;
-        bindingDescription.stride    = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-        attributeDescriptions[0].binding  = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format   = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset   = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding  = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format   = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset   = offsetof(Vertex, color);
-        return attributeDescriptions;
-    }
+    glm::vec3 col;
 };
 
 const std::vector<Vertex> vertices       = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -50,29 +26,23 @@ int main() {
 
     // create vertex buffer //
     Buffer vertStageBuffer = device.createBuffer(BufferType::Staging, vertBufferSize, vertices.data());
-    Buffer vertexBuffer = device.createBuffer(BufferType::Vertex, vertBufferSize);
+    Buffer vertexBuffer    = device.createBuffer(BufferType::Vertex, vertBufferSize);
     device.copyBuffer(vertStageBuffer, vertexBuffer, vertBufferSize);
     device.free(vertStageBuffer);
 
     // create index buffer //
     Buffer idxStageBuffer = device.createBuffer(BufferType::Staging, idxBufferSize, indices.data());
-    Buffer indexBuffer = device.createBuffer(BufferType::Index, idxBufferSize);
+    Buffer indexBuffer    = device.createBuffer(BufferType::Index, idxBufferSize);
     device.copyBuffer(idxStageBuffer, indexBuffer, idxBufferSize);
     device.free(idxStageBuffer);
 
-    // pipeline vertex input //
-    auto bindingDescription    = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount   = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions      = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
-
     // create render pass //
-    RenderPass renderPass = device.createRenderPass(vertShader, fragShader, window, &vertexInputInfo);
+    RenderPass renderPass = device.createRenderPass(vertShader,
+                                                    fragShader,
+                                                    window,
+                                                    VertexLayout(sizeof(Vertex),
+                                                                 {VertexLayoutAttribute(offsetof(Vertex, pos), Format::R32G32_SFLOAT),
+                                                                  VertexLayoutAttribute(offsetof(Vertex, col), Format::R32G32B32_SFLOAT)}));
 
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);

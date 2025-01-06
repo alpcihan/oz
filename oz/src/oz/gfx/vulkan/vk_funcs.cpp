@@ -184,11 +184,8 @@ VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkI
     return vkCreateImageView(device, &createInfo, nullptr, outSwapChainImageView);
 }
 
-VkResult ivkCreateFramebuffer(VkDevice       device,
-                              VkRenderPass   renderPass,
-                              VkExtent2D     swapchainExtent,
-                              VkImageView    imageView,
-                              VkFramebuffer* outFramebuffer) {
+VkResult ivkCreateFramebuffer(
+    VkDevice device, VkRenderPass renderPass, VkExtent2D swapchainExtent, VkImageView imageView, VkFramebuffer* outFramebuffer) {
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = renderPass;
@@ -358,10 +355,7 @@ VkResult ivkAllocateCommandBuffers(VkDevice         device,
     return vkAllocateCommandBuffers(device, &allocInfo, outCommandBuffers);
 }
 
-VkResult ivkCreateShaderModule(VkDevice        device,
-                               size_t          codeSize,
-                               const uint32_t* code,
-                               VkShaderModule* outShaderModule) {
+VkResult ivkCreateShaderModule(VkDevice device, size_t codeSize, const uint32_t* code, VkShaderModule* outShaderModule) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = codeSize;
@@ -405,10 +399,7 @@ VkResult ivkQueueSubmit(VkQueue              graphicsQueue,
     return vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
 }
 
-VkResult ivkQueuePresent(VkQueue        presentQueue,
-                         VkSemaphore    renderFinishedSemaphore,
-                         VkSwapchainKHR swapChain,
-                         uint32_t       imageIndex) {
+VkResult ivkQueuePresent(VkQueue presentQueue, VkSemaphore renderFinishedSemaphore, VkSwapchainKHR swapChain, uint32_t imageIndex) {
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
@@ -421,11 +412,8 @@ VkResult ivkQueuePresent(VkQueue        presentQueue,
     return vkQueuePresentKHR(presentQueue, &presentInfo);
 }
 
-VkResult ivkAllocateMemory(VkDevice              device,
-                           VkPhysicalDevice      physicalDevice,
-                           VkBuffer              buffer,
-                           VkMemoryPropertyFlags properties,
-                           VkDeviceMemory*       outBufferMemory) {
+VkResult ivkAllocateMemory(
+    VkDevice device, VkPhysicalDevice physicalDevice, VkBuffer buffer, VkMemoryPropertyFlags properties, VkDeviceMemory* outBufferMemory) {
 
     // get memory requirements //
     VkMemoryRequirements memRequirements;
@@ -436,8 +424,7 @@ VkResult ivkAllocateMemory(VkDevice              device,
 
     uint32_t i = 0;
     for (; i < memProperties.memoryTypeCount; i++) {
-        if ((memRequirements.memoryTypeBits & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((memRequirements.memoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             break;
         }
     }
@@ -455,7 +442,7 @@ VkResult ivkAllocateMemory(VkDevice              device,
 }
 
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
-    return VkDebugUtilsMessengerCreateInfoEXT{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    return VkDebugUtilsMessengerCreateInfoEXT{.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                                               .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
@@ -472,9 +459,7 @@ std::vector<const char*> ivkPopulateExtensions() {
     };
 }
 
-std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions,
-                                                       uint32_t     extensionCount,
-                                                       bool         isValidationLayerEnabled) {
+std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, uint32_t extensionCount, bool isValidationLayerEnabled) {
     std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
 
     if (isValidationLayerEnabled) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_base.h"
+#include "oz/gfx/vulkan/vk_common.h"
 
 namespace oz::gfx::vk {
 

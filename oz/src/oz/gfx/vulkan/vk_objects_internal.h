@@ -111,6 +111,7 @@ struct BufferObject final : IObject {
         vkObject->free(vkDevice);             \
         delete vkObject;                      \
         vkObject = nullptr;                   \
+
     }
 
 } // namespace oz::gfx::vk

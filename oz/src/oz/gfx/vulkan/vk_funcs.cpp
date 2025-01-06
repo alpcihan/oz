@@ -253,21 +253,20 @@ VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkR
     return vkCreateRenderPass(device, &renderPassInfo, nullptr, outRenderPass);
 }
 
-VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
-                                   VkPipelineShaderStageCreateInfo* shaderStages,
-                                   uint32_t                         stageCount,
-                                   VkExtent2D                       swapChainExtent,
-                                   VkPipelineLayout                 pipelineLayout,
-                                   VkRenderPass                     renderPass,
+VkResult ivkCreateGraphicsPipeline(VkDevice                              device,
+                                   VkPipelineShaderStageCreateInfo*      shaderStages,
+                                   uint32_t                              stageCount,
+                                   VkExtent2D                            swapChainExtent,
+                                   VkPipelineLayout                      pipelineLayout,
+                                   VkRenderPass                          renderPass,
                                    VkPipelineVertexInputStateCreateInfo* vertexInputInfo,
-                                   VkPipeline*                      outGraphicsPipeline) {
+                                   VkPipeline*                           outGraphicsPipeline) {
     std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates    = dynamicStates.data();
-
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -420,6 +419,39 @@ VkResult ivkQueuePresent(VkQueue        presentQueue,
     presentInfo.pResults           = nullptr; // optional
 
     return vkQueuePresentKHR(presentQueue, &presentInfo);
+}
+
+VkResult ivkAllocateMemory(VkDevice              device,
+                           VkPhysicalDevice      physicalDevice,
+                           VkBuffer              buffer,
+                           VkMemoryPropertyFlags properties,
+                           VkDeviceMemory*       outBufferMemory) {
+
+    // get memory requirements //
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    uint32_t i = 0;
+    for (; i < memProperties.memoryTypeCount; i++) {
+        if ((memRequirements.memoryTypeBits & (1 << i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            break;
+        }
+    }
+    if (i >= memProperties.memoryTypeCount) {
+        return VK_INCOMPLETE;
+    }
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize  = memRequirements.size;
+    allocInfo.memoryTypeIndex = i;
+
+    // allocate memory //
+    return vkAllocateMemory(device, &allocInfo, nullptr, outBufferMemory);
 }
 
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {

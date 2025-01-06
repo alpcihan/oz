@@ -83,6 +83,12 @@ VkResult ivkQueuePresent(VkQueue        presentQueue,
                          VkSwapchainKHR swapChain,
                          uint32_t       imageIndex);
 
+VkResult ivkAllocateMemory(VkDevice              device,
+                           VkPhysicalDevice      physicalDevice,
+                           VkBuffer              buffer,
+                           VkMemoryPropertyFlags properties,
+                           VkDeviceMemory*       outBufferMemory);
+
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback);
 
 std::vector<const char*> ivkPopulateExtensions();

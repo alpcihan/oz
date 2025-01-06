@@ -257,6 +257,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
         }
     }
 
+    // crate window object //
     Window window                  = OZ_CREATE_VK_OBJECT(Window);
     window->vkWindow               = vkWindow;
     window->vkSurface              = vkSurface;
@@ -295,6 +296,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
 
+    // create shader object //
     Shader shaderData                           = OZ_CREATE_VK_OBJECT(Shader);
     shaderData->stage                           = stage;
     shaderData->vkShaderModule                  = shaderModule;
@@ -307,15 +309,15 @@ RenderPass GraphicsDevice::createRenderPass(Shader                              
                                             Shader                                fragmentShader,
                                             Window                                window,
                                             VkPipelineVertexInputStateCreateInfo* vertexInputInfo) {
-    // render pass //
+    // create render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
 
-    // pipeline layout //
+    // create pipeline layout //
     VkPipelineLayout vkPipelineLayout;
     assert(ivkCreatePipelineLayout(m_device, &vkPipelineLayout) == VK_SUCCESS);
 
-    // graphics pipeline //
+    // create graphics pipeline //
     VkPipeline vkGraphicsPipeline;
     assert(
         ivkCreateGraphicsPipeline(m_device,
@@ -324,13 +326,14 @@ RenderPass GraphicsDevice::createRenderPass(Shader                              
                                   2, window->vkSwapChainExtent, vkPipelineLayout, vkRenderPass, vertexInputInfo,
                                   &vkGraphicsPipeline) == VK_SUCCESS);
 
-    // frame buffers //
+    // create frame buffers //
     std::vector<VkFramebuffer> vkFrameBuffers(window->vkSwapChainImageViews.size());
     for (size_t i = 0; i < window->vkSwapChainImageViews.size(); i++) {
         assert(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i],
                                     &vkFrameBuffers[i]) == VK_SUCCESS);
     }
 
+    // create render pass object //
     RenderPass renderPass          = OZ_CREATE_VK_OBJECT(RenderPass);
     renderPass->vkRenderPass       = vkRenderPass;
     renderPass->vkPipelineLayout   = vkPipelineLayout;
@@ -342,9 +345,11 @@ RenderPass GraphicsDevice::createRenderPass(Shader                              
 }
 
 Semaphore GraphicsDevice::createSemaphore() {
+    // create semaphore //
     VkSemaphore vkSemaphore;
     assert(ivkCreateSemaphore(m_device, &vkSemaphore) == VK_SUCCESS);
 
+    // create semaphore object //
     Semaphore semaphore    = OZ_CREATE_VK_OBJECT(Semaphore);
     semaphore->vkSemaphore = vkSemaphore;
 
@@ -352,45 +357,24 @@ Semaphore GraphicsDevice::createSemaphore() {
 }
 
 Buffer GraphicsDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+    // create buffer //
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size        = size;
     bufferInfo.usage       = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    // create buffer //
     VkBuffer vkBuffer;
     assert(vkCreateBuffer(m_device, &bufferInfo, nullptr, &vkBuffer) == VK_SUCCESS);
 
-    // get memory requirements
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, vkBuffer, &memRequirements);
-
-    auto findMemoryType = [](VkPhysicalDevice vkPhysicalDevice, uint32_t typeFilter,
-                             VkMemoryPropertyFlags properties) -> uint32_t {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-        assert(false);
-        return ~0u;
-    };
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize  = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, properties);
-
-    // allocate memory //
+    // find suitable memory and allocate //
     VkDeviceMemory vkBufferMemory;
-    assert(vkAllocateMemory(m_device, &allocInfo, nullptr, &vkBufferMemory) == VK_SUCCESS);
+    assert(ivkAllocateMemory(m_device, m_physicalDevice, vkBuffer, properties, &vkBufferMemory) == VK_SUCCESS);
 
     // bind memory //
     vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
 
+    // create buffer object //
     Buffer buffer    = OZ_CREATE_VK_OBJECT(Buffer);
     buffer->vkBuffer = vkBuffer;
     buffer->vkMemory = vkBufferMemory;
@@ -401,9 +385,11 @@ Buffer GraphicsDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
 
 Fence GraphicsDevice::createFence() {
+    // create fence //
     VkFence vkFence;
     assert(ivkCreateFence(m_device, &vkFence) == VK_SUCCESS);
 
+    // create fence object //
     Fence fence    = OZ_CREATE_VK_OBJECT(Fence);
     fence->vkFence = vkFence;
 
@@ -523,7 +509,7 @@ void GraphicsDevice::copyBuffer(Buffer src, Buffer dst, uint64_t size) {
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0; 
+    copyRegion.srcOffset = 0;
     copyRegion.dstOffset = 0;
     copyRegion.size      = size;
     vkCmdCopyBuffer(commandBuffer, src->vkBuffer, dst->vkBuffer, 1, &copyRegion);

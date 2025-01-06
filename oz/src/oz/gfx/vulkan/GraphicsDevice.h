@@ -26,7 +26,7 @@ class GraphicsDevice final {
                                    VkPipelineVertexInputStateCreateInfo* vertexInputInfo);
     Semaphore     createSemaphore();
     Fence         createFence();
-    Buffer        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+    Buffer createBuffer(uint64_t size, const void* data, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
     // sync //
     void waitIdle() const;
@@ -53,7 +53,14 @@ class GraphicsDevice final {
               uint32_t      instanceCount = 1,
               uint32_t      firstVertex   = 0,
               uint32_t      firstInstance = 0) const;
+    void drawIndexed(CommandBuffer cmd,
+                     uint32_t      indexCount,
+                     uint32_t      instanceCount = 1,
+                     uint32_t      firstIndex    = 0,
+                     uint32_t      vertexOffset  = 0,
+                     uint32_t      firstInstance = 0) const;
     void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
+    void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
 
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);
 

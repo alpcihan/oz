@@ -32,9 +32,10 @@ struct Vertex {
     }
 };
 
-const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                      {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                      {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                      {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
 
 const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
 
@@ -46,25 +47,37 @@ int main() {
     Shader fragShader = device.createShader("default.frag", ShaderStage::Fragment);
 
     Buffer vertexBuffer;
-    Buffer stageBuffer;
-    Buffer indexBuffer;
     // create vertex buffer
     {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-        stageBuffer = device.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Buffer stageBuffer =
+            device.createBuffer(bufferSize, vertices.data(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        void* data;
-        vkMapMemory(device.m_device, stageBuffer->vkMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device.m_device, stageBuffer->vkMemory);
-
-        vertexBuffer =
-            device.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        vertexBuffer = device.createBuffer(bufferSize, nullptr,
+                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         device.copyBuffer(stageBuffer, vertexBuffer, bufferSize);
+
+        device.free(stageBuffer);
+    }
+
+    // create index buffer
+    Buffer indexBuffer;
+    {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+        Buffer stageBuffer =
+            device.createBuffer(bufferSize, indices.data(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        indexBuffer = device.createBuffer(bufferSize, nullptr,
+                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        device.copyBuffer(stageBuffer, indexBuffer, bufferSize);
 
         device.free(stageBuffer);
     }
@@ -88,7 +101,8 @@ int main() {
         device.beginCmd(cmd);
         device.beginRenderPass(cmd, renderPass, imageIndex);
         device.bindVertexBuffer(cmd, vertexBuffer);
-        device.draw(cmd, 3);
+        device.bindIndexBuffer(cmd, indexBuffer);
+        device.drawIndexed(cmd, indices.size());
         device.endRenderPass(cmd);
         device.endCmd(cmd);
 
@@ -103,6 +117,7 @@ int main() {
     device.free(renderPass);
 
     device.free(vertexBuffer);
+    device.free(indexBuffer);
 
     return 0;
 }

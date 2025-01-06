@@ -356,7 +356,11 @@ Semaphore GraphicsDevice::createSemaphore() {
     return semaphore;
 }
 
-Buffer GraphicsDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+Buffer GraphicsDevice::createBuffer(uint64_t              size,
+                                    const void*           data,
+                                    VkBufferUsageFlags    usage,
+                                    VkMemoryPropertyFlags properties) {
+
     // create buffer //
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -373,6 +377,14 @@ Buffer GraphicsDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
     // bind memory //
     vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
+
+    // copy the data to the buffer memory //
+    if (data != nullptr) {
+        void* pData;
+        vkMapMemory(m_device, vkBufferMemory, 0, size, 0, &pData);
+        memcpy(pData, data, (size_t)size);
+        vkUnmapMemory(m_device, vkBufferMemory);
+    }
 
     // create buffer object //
     Buffer buffer    = OZ_CREATE_VK_OBJECT(Buffer);
@@ -488,8 +500,21 @@ void GraphicsDevice::draw(CommandBuffer cmd,
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
+void GraphicsDevice::drawIndexed(CommandBuffer cmd,
+                                 uint32_t      indexCount,
+                                 uint32_t      instanceCount,
+                                 uint32_t      firstIndex,
+                                 uint32_t      vertexOffset,
+                                 uint32_t      firstInstance) const {
+    vkCmdDrawIndexed(cmd->vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
 void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
     vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
+}
+
+void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
+    vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
 
 void GraphicsDevice::copyBuffer(Buffer src, Buffer dst, uint64_t size) {

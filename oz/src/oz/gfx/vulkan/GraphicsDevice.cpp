@@ -351,9 +351,49 @@ Semaphore GraphicsDevice::createSemaphore() {
     return semaphore;
 }
 
-Buffer GraphicsDevice::createBuffer(VkBuffer vkBuffer) {
+Buffer GraphicsDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size        = size;
+    bufferInfo.usage       = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    // create buffer //
+    VkBuffer vkBuffer;
+    assert(vkCreateBuffer(m_device, &bufferInfo, nullptr, &vkBuffer) == VK_SUCCESS);
+
+    // get memory requirements
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_device, vkBuffer, &memRequirements);
+
+    auto findMemoryType = [](VkPhysicalDevice vkPhysicalDevice, uint32_t typeFilter,
+                             VkMemoryPropertyFlags properties) -> uint32_t {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+        assert(false);
+        return ~0u;
+    };
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize  = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, properties);
+
+    // allocate memory //
+    VkDeviceMemory vkBufferMemory;
+    assert(vkAllocateMemory(m_device, &allocInfo, nullptr, &vkBufferMemory) == VK_SUCCESS);
+
+    // bind memory //
+    vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
+
     Buffer buffer    = OZ_CREATE_VK_OBJECT(Buffer);
     buffer->vkBuffer = vkBuffer;
+    buffer->vkMemory = vkBufferMemory;
 
     return buffer;
 }
@@ -423,16 +463,6 @@ void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
                           m_inFlightFences[m_currentFrame]->vkFence) == VK_SUCCESS);
 }
 
-void GraphicsDevice::submitSingle(CommandBuffer cmd) const {
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd->vkCommandBuffer;
-
-    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_graphicsQueue);
-}
-
 void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -476,12 +506,39 @@ void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
     vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
 }
 
-void GraphicsDevice::copyBuffer(CommandBuffer cmd, Buffer src, Buffer dst, uint64_t size) {
+void GraphicsDevice::copyBuffer(Buffer src, Buffer dst, uint64_t size) {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool        = m_commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
     VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
+    copyRegion.srcOffset = 0; 
     copyRegion.dstOffset = 0;
     copyRegion.size      = size;
-    vkCmdCopyBuffer(cmd->vkCommandBuffer, src->vkBuffer, src->vkBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, src->vkBuffer, dst->vkBuffer, 1, &copyRegion);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &commandBuffer;
+
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
 void GraphicsDevice::free(Window window) const { OZ_FREE_VK_OBJECT(m_device, window); }

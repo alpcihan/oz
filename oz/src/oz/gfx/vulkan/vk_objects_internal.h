@@ -95,20 +95,22 @@ struct CommandBufferObject final : IObject {
 };
 
 struct BufferObject final : IObject {
-    VkBuffer vkBuffer = VK_NULL_HANDLE;
+    VkBuffer       vkBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory vkMemory = VK_NULL_HANDLE;
 
     void free(VkDevice vkDevice) override {
-        
+        vkDestroyBuffer(vkDevice, vkBuffer, nullptr);
+        vkFreeMemory(vkDevice, vkMemory, nullptr);
     }
 };
 
 #define OZ_CREATE_VK_OBJECT(TYPE) new TYPE##Object
 
 #define OZ_FREE_VK_OBJECT(vkDevice, vkObject) \
-    if (vkObject) {               \
-        vkObject->free(vkDevice); \
-        delete vkObject;          \
-        vkObject = nullptr;       \
+    if (vkObject) {                           \
+        vkObject->free(vkDevice);             \
+        delete vkObject;                      \
+        vkObject = nullptr;                   \
     }
 
 } // namespace oz::gfx::vk

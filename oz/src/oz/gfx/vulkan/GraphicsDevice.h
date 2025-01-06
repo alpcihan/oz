@@ -26,7 +26,7 @@ class GraphicsDevice final {
                                    VkPipelineVertexInputStateCreateInfo* vertexInputInfo);
     Semaphore     createSemaphore();
     Fence         createFence();
-    Buffer        createBuffer(VkBuffer vkBuffer);
+    Buffer        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
     // sync //
     void waitIdle() const;
@@ -46,7 +46,6 @@ class GraphicsDevice final {
     void beginCmd(CommandBuffer cmd, bool isSingleUse = false) const;
     void endCmd(CommandBuffer cmd) const;
     void submitCmd(CommandBuffer cmd) const;
-    void submitSingle(CommandBuffer cmd) const;
     void beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
     void endRenderPass(CommandBuffer cmd) const;
     void draw(CommandBuffer cmd,
@@ -55,7 +54,8 @@ class GraphicsDevice final {
               uint32_t      firstVertex   = 0,
               uint32_t      firstInstance = 0) const;
     void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
-    void copyBuffer(CommandBuffer cmd, Buffer src, Buffer dst, uint64_t size);
+
+    void copyBuffer(Buffer src, Buffer dst, uint64_t size);
 
     // free //
     void free(Window window) const;
@@ -67,16 +67,17 @@ class GraphicsDevice final {
     void free(Buffer buffer) const;
 
   public:
-    VkDevice         m_device         = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkCommandPool    m_commandPool    = VK_NULL_HANDLE; // TODO: Support multiple command pools
-    VkQueue          m_graphicsQueue  = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
 
   private:
-    VkInstance m_instance = VK_NULL_HANDLE;
+    VkInstance       m_instance       = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 
+    VkQueue                              m_graphicsQueue = VK_NULL_HANDLE;
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
     uint32_t                             m_graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
+
+    VkCommandPool m_commandPool = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 

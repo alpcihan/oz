@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_base.h"
+#include "oz/gfx/vulkan/vk_common.h"
 
 namespace oz::gfx::vk {
 
@@ -16,56 +16,69 @@ class GraphicsDevice final {
     ~GraphicsDevice();
 
   public:
-    // create
+    // create //
     Window        createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer createCommandBuffer();
     Shader        createShader(const std::string& path, ShaderStage stage);
-    RenderPass    createRenderPass(Shader vertexShader, Shader fragmentShader, Window window);
-    Semaphore     createSemaphore();
-    Fence         createFence();
+    RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout);
+    Semaphore  createSemaphore();
+    Fence      createFence();
+    Buffer     createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
 
-    // sync
+    // sync //
     void waitIdle() const;
+    void waitGraphicsQueueIdle() const;
     void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true) const;
     void resetFences(Fence fence, uint32_t fenceCount) const;
 
-    // state getters
+    // state getters //
     CommandBuffer getCurrentCommandBuffer();
     uint32_t      getCurrentImage(Window window) const;
 
-    // window
+    // window //
     bool isWindowOpen(Window window) const;
     void presentImage(Window window, uint32_t imageIndex);
 
-    // commands
-    void beginCmd(CommandBuffer cmd) const;
+    // commands //
+    void beginCmd(CommandBuffer cmd, bool isSingleUse = false) const;
     void endCmd(CommandBuffer cmd) const;
     void submitCmd(CommandBuffer cmd) const;
     void beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
     void endRenderPass(CommandBuffer cmd) const;
-    void draw(CommandBuffer cmd,
-              uint32_t      vertexCount,
-              uint32_t      instanceCount = 1,
-              uint32_t      firstVertex   = 0,
-              uint32_t      firstInstance = 0) const;
+    void draw(
+        CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
+    void drawIndexed(CommandBuffer cmd,
+                     uint32_t      indexCount,
+                     uint32_t      instanceCount = 1,
+                     uint32_t      firstIndex    = 0,
+                     uint32_t      vertexOffset  = 0,
+                     uint32_t      firstInstance = 0) const;
+    void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
+    void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
 
-    // free
+    void copyBuffer(Buffer src, Buffer dst, uint64_t size);
+
+    // free //
     void free(Window window) const;
     void free(Shader shader) const;
     void free(RenderPass renderPass) const;
     void free(Semaphore semaphore) const;
     void free(Fence fence) const;
     void free(CommandBuffer commandBuffer) const;
+    void free(Buffer buffer) const;
+
+  public:
+    VkDevice m_device = VK_NULL_HANDLE;
 
   private:
     VkInstance       m_instance       = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice         m_device         = VK_NULL_HANDLE;
-    VkCommandPool    m_commandPool    = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
+    VkQueue                              m_graphicsQueue = VK_NULL_HANDLE;
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
-    VkQueue                              m_graphicsQueue  = VK_NULL_HANDLE;
     uint32_t                             m_graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
+
+    VkCommandPool m_commandPool = VK_NULL_HANDLE; // TODO: Support multiple command pools
 
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
@@ -75,9 +88,6 @@ class GraphicsDevice final {
     std::vector<Semaphore>     m_renderFinishedSemaphores;
 
     uint32_t m_currentFrame = 0;
-
-  private:
-    VkCommandPool _createCommandPool();
 };
 
 } // namespace oz::gfx::vk

@@ -1,4 +1,4 @@
-#include "oz/gfx/vulkan/vk_utils.h"
+#include "oz/gfx/vulkan/vk_funcs.h"
 
 namespace oz::gfx::vk {
 
@@ -184,11 +184,8 @@ VkResult ivkCreateImageView(VkDevice device, VkImage image, VkFormat format, VkI
     return vkCreateImageView(device, &createInfo, nullptr, outSwapChainImageView);
 }
 
-VkResult ivkCreateFramebuffer(VkDevice       device,
-                              VkRenderPass   renderPass,
-                              VkExtent2D     swapchainExtent,
-                              VkImageView    imageView,
-                              VkFramebuffer* outFramebuffer) {
+VkResult ivkCreateFramebuffer(
+    VkDevice device, VkRenderPass renderPass, VkExtent2D swapchainExtent, VkImageView imageView, VkFramebuffer* outFramebuffer) {
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = renderPass;
@@ -204,10 +201,10 @@ VkResult ivkCreateFramebuffer(VkDevice       device,
 VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineLayout) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount         = 0;       // No descriptor sets
-    pipelineLayoutInfo.pSetLayouts            = nullptr; // No descriptor set layouts
-    pipelineLayoutInfo.pushConstantRangeCount = 0;       // No push constant ranges
-    pipelineLayoutInfo.pPushConstantRanges    = nullptr; // No push constants
+    pipelineLayoutInfo.setLayoutCount         = 0;
+    pipelineLayoutInfo.pSetLayouts            = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges    = nullptr;
 
     return vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, outPipelineLayout);
 }
@@ -253,26 +250,20 @@ VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkR
     return vkCreateRenderPass(device, &renderPassInfo, nullptr, outRenderPass);
 }
 
-VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
-                                   VkPipelineShaderStageCreateInfo* shaderStages,
-                                   uint32_t                         stageCount,
-                                   VkExtent2D                       swapChainExtent,
-                                   VkPipelineLayout                 pipelineLayout,
-                                   VkRenderPass                     renderPass,
-                                   VkPipeline*                      outGraphicsPipeline) {
+VkResult ivkCreateGraphicsPipeline(VkDevice                              device,
+                                   VkPipelineShaderStageCreateInfo*      shaderStages,
+                                   uint32_t                              stageCount,
+                                   VkExtent2D                            swapChainExtent,
+                                   VkPipelineLayout                      pipelineLayout,
+                                   VkRenderPass                          renderPass,
+                                   VkPipelineVertexInputStateCreateInfo* vertexInputInfo,
+                                   VkPipeline*                           outGraphicsPipeline) {
     std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates    = dynamicStates.data();
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount   = 0;
-    vertexInputInfo.pVertexBindingDescriptions      = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions    = nullptr;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -328,7 +319,7 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                         device,
     pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount          = stageCount;
     pipelineInfo.pStages             = shaderStages;
-    pipelineInfo.pVertexInputState   = &vertexInputInfo;
+    pipelineInfo.pVertexInputState   = vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState      = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
@@ -364,10 +355,7 @@ VkResult ivkAllocateCommandBuffers(VkDevice         device,
     return vkAllocateCommandBuffers(device, &allocInfo, outCommandBuffers);
 }
 
-VkResult ivkCreateShaderModule(VkDevice        device,
-                               size_t          codeSize,
-                               const uint32_t* code,
-                               VkShaderModule* outShaderModule) {
+VkResult ivkCreateShaderModule(VkDevice device, size_t codeSize, const uint32_t* code, VkShaderModule* outShaderModule) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = codeSize;
@@ -411,10 +399,7 @@ VkResult ivkQueueSubmit(VkQueue              graphicsQueue,
     return vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
 }
 
-VkResult ivkQueuePresent(VkQueue        presentQueue,
-                         VkSemaphore    renderFinishedSemaphore,
-                         VkSwapchainKHR swapChain,
-                         uint32_t       imageIndex) {
+VkResult ivkQueuePresent(VkQueue presentQueue, VkSemaphore renderFinishedSemaphore, VkSwapchainKHR swapChain, uint32_t imageIndex) {
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
@@ -427,8 +412,37 @@ VkResult ivkQueuePresent(VkQueue        presentQueue,
     return vkQueuePresentKHR(presentQueue, &presentInfo);
 }
 
+VkResult ivkAllocateMemory(
+    VkDevice device, VkPhysicalDevice physicalDevice, VkBuffer buffer, VkMemoryPropertyFlags properties, VkDeviceMemory* outBufferMemory) {
+
+    // get memory requirements //
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    uint32_t i = 0;
+    for (; i < memProperties.memoryTypeCount; i++) {
+        if ((memRequirements.memoryTypeBits & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            break;
+        }
+    }
+    if (i >= memProperties.memoryTypeCount) {
+        return VK_INCOMPLETE;
+    }
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize  = memRequirements.size;
+    allocInfo.memoryTypeIndex = i;
+
+    // allocate memory //
+    return vkAllocateMemory(device, &allocInfo, nullptr, outBufferMemory);
+}
+
 VkDebugUtilsMessengerCreateInfoEXT ivkPopulateDebugMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT callback) {
-    return VkDebugUtilsMessengerCreateInfoEXT{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    return VkDebugUtilsMessengerCreateInfoEXT{.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                                               .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
@@ -445,9 +459,7 @@ std::vector<const char*> ivkPopulateExtensions() {
     };
 }
 
-std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions,
-                                                       uint32_t     extensionCount,
-                                                       bool         isValidationLayerEnabled) {
+std::vector<const char*> ivkPopulateInstanceExtensions(const char** extensions, uint32_t extensionCount, bool isValidationLayerEnabled) {
     std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
 
     if (isValidationLayerEnabled) {

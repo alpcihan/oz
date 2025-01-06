@@ -303,7 +303,10 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     return shaderData;
 }
 
-RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, VkPipelineVertexInputStateCreateInfo* vertexInputInfo) {
+RenderPass GraphicsDevice::createRenderPass(Shader                                vertexShader,
+                                            Shader                                fragmentShader,
+                                            Window                                window,
+                                            VkPipelineVertexInputStateCreateInfo* vertexInputInfo) {
     // render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
@@ -400,12 +403,12 @@ void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
-void GraphicsDevice::beginCmd(CommandBuffer cmd) const {
+void GraphicsDevice::beginCmd(CommandBuffer cmd, bool isSingleUse) const {
     vkResetCommandBuffer(cmd->vkCommandBuffer, 0);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags            = 0;       // optional
+    beginInfo.flags            = isSingleUse ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
     beginInfo.pInheritanceInfo = nullptr; // optional
 
     assert(vkBeginCommandBuffer(cmd->vkCommandBuffer, &beginInfo) == VK_SUCCESS);
@@ -418,6 +421,16 @@ void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
     assert(ivkQueueSubmit(m_graphicsQueue, m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore, waitStage,
                           cmd->vkCommandBuffer, m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore,
                           m_inFlightFences[m_currentFrame]->vkFence) == VK_SUCCESS);
+}
+
+void GraphicsDevice::submitSingle(CommandBuffer cmd) const {
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &cmd->vkCommandBuffer;
+
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_graphicsQueue);
 }
 
 void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
@@ -461,6 +474,14 @@ void GraphicsDevice::draw(CommandBuffer cmd,
 
 void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
     vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
+}
+
+void GraphicsDevice::copyBuffer(CommandBuffer cmd, Buffer src, Buffer dst, uint64_t size) {
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = 0;
+    copyRegion.size      = size;
+    vkCmdCopyBuffer(cmd->vkCommandBuffer, src->vkBuffer, src->vkBuffer, 1, &copyRegion);
 }
 
 void GraphicsDevice::free(Window window) const { OZ_FREE_VK_OBJECT(m_device, window); }

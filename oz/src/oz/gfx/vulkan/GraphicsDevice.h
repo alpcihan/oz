@@ -30,6 +30,7 @@ class GraphicsDevice final {
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
     DescriptorSetLayout createDescriptorSetLayout();
+    DescriptorSet       createDescriptorSet(DescriptorSetLayout descriptorSetLayout);
 
     // sync //
     void waitIdle() const;

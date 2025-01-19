@@ -483,10 +483,28 @@ DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout() {
     assert(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &vkDescriptorSetLayout) == VK_SUCCESS);
 
     // create descriptor set layout object //
-    DescriptorSetLayout descriptorSetLayout = OZ_CREATE_VK_OBJECT(DescriptorSetLayout);
+    DescriptorSetLayout descriptorSetLayout    = OZ_CREATE_VK_OBJECT(DescriptorSetLayout);
     descriptorSetLayout->vkDescriptorSetLayout = vkDescriptorSetLayout;
 
     return descriptorSetLayout;
+}
+
+DescriptorSet GraphicsDevice::createDescriptorSet(DescriptorSetLayout descriptorSetLayout) {
+    // create descriptor set //
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool     = m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
+
+    VkDescriptorSet vkDescriptorSet;
+    assert(vkAllocateDescriptorSets(m_device, &allocInfo, &vkDescriptorSet) == VK_SUCCESS);
+
+    // create descriptor set object //
+    DescriptorSet descriptorSet = OZ_CREATE_VK_OBJECT(DescriptorSet);
+    descriptorSet->vkDescriptorSet = vkDescriptorSet;
+
+    return descriptorSet;
 }
 
 void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }

@@ -56,23 +56,10 @@ int main() {
     // create descriptor set layout //
     DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout();
 
-    // create descriptor pool //
-
-
     // create descriptor set //
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = device.m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
-
-    std::vector<VkDescriptorSet> descriptorSets;
-    descriptorSets.resize(FRAMES_IN_FLIGHT);
-
+    std::vector<DescriptorSet> descriptorSets(FRAMES_IN_FLIGHT);
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        if (vkAllocateDescriptorSets(device.m_device, &allocInfo, &descriptorSets[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
+        descriptorSets[i] = device.createDescriptorSet(descriptorSetLayout);
     }
 
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -83,7 +70,7 @@ int main() {
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet           = descriptorSets[i];
+        descriptorWrite.dstSet           = descriptorSets[i]->vkDescriptorSet;
         descriptorWrite.dstBinding       = 0;
         descriptorWrite.dstArrayElement  = 0;
         descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -134,7 +121,7 @@ int main() {
                                 renderPass->vkPipelineLayout,
                                 0,
                                 1,
-                                &descriptorSets[device.getCurrentFrame()],
+                                &(descriptorSets[device.getCurrentFrame()]->vkDescriptorSet),
                                 0,
                                 nullptr);
 

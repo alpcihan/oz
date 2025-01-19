@@ -68,7 +68,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     assert(ivkCreateCommandPool(m_device, m_graphicsFamily, &m_commandPool) == VK_SUCCESS);
 
     // create a descriptor pool //
-    assert(ivkCreateDescriptorPool(m_device, FRAMES_IN_FLIGHT, &m_descriptorPool) == VK_SUCCESS);
+    assert(ivkCreateDescriptorPool(m_device, 1024, &m_descriptorPool) == VK_SUCCESS);
 
     // current frame //
     m_currentFrame = 0;
@@ -465,19 +465,12 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     return buffer;
 }
 
-DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout() {
+DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBindings) {
     // create descriptor set layout //
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding            = 0;
-    uboLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount    = 1;
-    uboLayoutBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings    = &uboLayoutBinding;
+    layoutInfo.bindingCount = descriptorSetLayoutBindings.size();
+    layoutInfo.pBindings    = descriptorSetLayoutBindings.data();
 
     VkDescriptorSetLayout vkDescriptorSetLayout;
     assert(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &vkDescriptorSetLayout) == VK_SUCCESS);

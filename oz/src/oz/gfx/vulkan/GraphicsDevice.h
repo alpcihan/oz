@@ -29,7 +29,7 @@ class GraphicsDevice final {
     Semaphore           createSemaphore();
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
-    DescriptorSetLayout createDescriptorSetLayout();
+    DescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBindings);
     DescriptorSet       createDescriptorSet(DescriptorSetLayout descriptorSetLayout);
 
     // sync //
@@ -79,9 +79,8 @@ class GraphicsDevice final {
     void free(DescriptorSetLayout descriptorSetLayout) const;
 
   public:
-    VkDevice m_device = VK_NULL_HANDLE;
+    VkDevice         m_device         = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE; // TODO: Support multiple and dynamic descriptor pool
-
 
   private:
     VkInstance       m_instance       = VK_NULL_HANDLE;

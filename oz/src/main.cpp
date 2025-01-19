@@ -21,7 +21,7 @@ const std::vector<uint16_t> indices       = {0, 1, 2, 2, 3, 0};
 VkDeviceSize                idxBufferSize = sizeof(indices[0]) * indices.size();
 
 // uniform buffer data //
-struct Uniform {
+struct MVP {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
@@ -47,14 +47,33 @@ int main() {
     device.copyBuffer(idxStageBuffer, indexBuffer, idxBufferSize);
     device.free(idxStageBuffer);
 
-    // create uniform buffer //
-    std::vector<Buffer> uniformBuffers(FRAMES_IN_FLIGHT);
+    // create uniform buffers //
+    std::vector<Buffer> mvpBuffers(FRAMES_IN_FLIGHT);
+    std::vector<Buffer> countBuffers(FRAMES_IN_FLIGHT);
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = device.createBuffer(BufferType::Uniform, sizeof(Uniform));
+        mvpBuffers[i]   = device.createBuffer(BufferType::Uniform, sizeof(MVP));
+        countBuffers[i] = device.createBuffer(BufferType::Uniform, sizeof(uint32_t));
     }
 
     // create descriptor set layout //
-    DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout();
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayouts = {
+        {
+            .binding            = 0,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr // Optional
+        },
+        {
+            .binding            = 1,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr // Optional
+        },
+    };
+
+    DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout(descriptorSetLayouts);
 
     // create descriptor set //
     std::vector<DescriptorSet> descriptorSets(FRAMES_IN_FLIGHT);
@@ -63,23 +82,44 @@ int main() {
     }
 
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i]->vkBuffer;
-        bufferInfo.offset = 0;
-        bufferInfo.range  = sizeof(Uniform);
+        {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = mvpBuffers[i]->vkBuffer;
+            bufferInfo.offset = 0;
+            bufferInfo.range  = sizeof(MVP);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet           = descriptorSets[i]->vkDescriptorSet;
-        descriptorWrite.dstBinding       = 0;
-        descriptorWrite.dstArrayElement  = 0;
-        descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount  = 1;
-        descriptorWrite.pBufferInfo      = &bufferInfo;
-        descriptorWrite.pImageInfo       = nullptr; // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet           = descriptorSets[i]->vkDescriptorSet;
+            descriptorWrite.dstBinding       = 0;
+            descriptorWrite.dstArrayElement  = 0;
+            descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount  = 1;
+            descriptorWrite.pBufferInfo      = &bufferInfo;
+            descriptorWrite.pImageInfo       = nullptr; // Optional
+            descriptorWrite.pTexelBufferView = nullptr; // Optional
 
-        vkUpdateDescriptorSets(device.m_device, 1, &descriptorWrite, 0, nullptr);
+            vkUpdateDescriptorSets(device.m_device, 1, &descriptorWrite, 0, nullptr);
+        }
+        {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = countBuffers[i]->vkBuffer;
+            bufferInfo.offset = 0;
+            bufferInfo.range  = sizeof(uint32_t);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet           = descriptorSets[i]->vkDescriptorSet;
+            descriptorWrite.dstBinding       = 1;
+            descriptorWrite.dstArrayElement  = 0;
+            descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount  = 1;
+            descriptorWrite.pBufferInfo      = &bufferInfo;
+            descriptorWrite.pImageInfo       = nullptr; // Optional
+            descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+            vkUpdateDescriptorSets(device.m_device, 1, &descriptorWrite, 0, nullptr);
+        }
     }
 
     // create render pass //
@@ -94,6 +134,7 @@ int main() {
 
     device.free(descriptorSetLayout);
 
+    uint32_t count = 0;
     // rendering loop //
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);
@@ -105,12 +146,13 @@ int main() {
             static auto startTime   = std::chrono::high_resolution_clock::now();
             auto        currentTime = std::chrono::high_resolution_clock::now();
             float       time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-            Uniform     ubo{};
-            ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            ubo.view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            ubo.proj  = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
+            MVP         mvp{};
+            mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            mvp.view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            mvp.proj  = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
             // ubo.proj[1][1] *= -1;
-            device.updateBuffer(uniformBuffers[frame], &ubo, sizeof(ubo));
+            device.updateBuffer(mvpBuffers[frame], &mvp, sizeof(mvp));
+            device.updateBuffer(countBuffers[frame], &count, sizeof(count));
         }
 
         device.beginCmd(cmd);
@@ -125,6 +167,8 @@ int main() {
 
         device.submitCmd(cmd);
         device.presentImage(window, imageIndex);
+
+        count++;
     }
     device.waitIdle();
 
@@ -136,10 +180,15 @@ int main() {
     device.free(vertexBuffer);
     device.free(indexBuffer);
 
-    for (auto& uniformBuffer : uniformBuffers) {
+    for (auto& uniformBuffer : mvpBuffers) {
         device.free(uniformBuffer);
     }
-    uniformBuffers.clear();
+    mvpBuffers.clear();
+
+    for (auto& timeBuffer : countBuffers) {
+        device.free(timeBuffer);
+    }
+    countBuffers.clear();
 
     return 0;
 }

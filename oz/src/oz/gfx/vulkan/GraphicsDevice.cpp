@@ -459,6 +459,30 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     return buffer;
 }
 
+DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout() {
+    // create descriptor set layout //
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding            = 0;
+    uboLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount    = 1;
+    uboLayoutBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings    = &uboLayoutBinding;
+
+    VkDescriptorSetLayout vkDescriptorSetLayout;
+    assert(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &vkDescriptorSetLayout) == VK_SUCCESS);
+
+    // create descriptor set layout object //
+    DescriptorSetLayout descriptorSetLayout = OZ_CREATE_VK_OBJECT(DescriptorSetLayout);
+    descriptorSetLayout->vkDescriptorSetLayout = vkDescriptorSetLayout;
+
+    return descriptorSetLayout;
+}
+
 void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
 
 Fence GraphicsDevice::createFence() {
@@ -630,5 +654,6 @@ void GraphicsDevice::free(Semaphore semaphore) const { OZ_FREE_VK_OBJECT(m_devic
 void GraphicsDevice::free(Fence fence) const { OZ_FREE_VK_OBJECT(m_device, fence); }
 void GraphicsDevice::free(CommandBuffer commandBuffer) const { OZ_FREE_VK_OBJECT(m_device, commandBuffer); }
 void GraphicsDevice::free(Buffer buffer) const { OZ_FREE_VK_OBJECT(m_device, buffer); }
+void GraphicsDevice::free(DescriptorSetLayout descriptorSetLayout) const { OZ_FREE_VK_OBJECT(m_device, descriptorSetLayout); }
 
 } // namespace oz::gfx::vk

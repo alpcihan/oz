@@ -106,6 +106,14 @@ struct BufferObject final : IObject {
     }
 };
 
+struct DescriptorSetLayoutObject final : IObject {
+    VkDescriptorSetLayout vkDescriptorSetLayout = VK_NULL_HANDLE;
+
+    void free(VkDevice vkDevice) override {
+        vkDestroyDescriptorSetLayout(vkDevice, vkDescriptorSetLayout, nullptr);
+    }
+};
+
 #define OZ_CREATE_VK_OBJECT(TYPE) new TYPE##Object
 
 #define OZ_FREE_VK_OBJECT(vkDevice, vkObject) \

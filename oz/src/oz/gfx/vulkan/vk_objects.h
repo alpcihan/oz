@@ -15,5 +15,6 @@ OZ_VK_OBJECT(Fence);
 OZ_VK_OBJECT(Semaphore);
 OZ_VK_OBJECT(CommandBuffer);
 OZ_VK_OBJECT(Buffer);
+OZ_VK_OBJECT(DescriptorSetLayout);
 
 } // namespace oz::gfx::vk

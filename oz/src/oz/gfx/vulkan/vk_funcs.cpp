@@ -198,7 +198,10 @@ VkResult ivkCreateFramebuffer(
     return vkCreateFramebuffer(device, &framebufferInfo, nullptr, outFramebuffer);
 }
 
-VkResult ivkCreatePipelineLayout(VkDevice device, uint32_t descriptorSetLayoutCount, VkDescriptorSetLayout* descriptorSetLayouts, VkPipelineLayout* outPipelineLayout) {
+VkResult ivkCreatePipelineLayout(VkDevice               device,
+                                 uint32_t               descriptorSetLayoutCount,
+                                 VkDescriptorSetLayout* descriptorSetLayouts,
+                                 VkPipelineLayout*      outPipelineLayout) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount         = descriptorSetLayoutCount;
@@ -331,6 +334,20 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                              device,
     pipelineInfo.subpass             = 0;
 
     return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, outGraphicsPipeline);
+}
+
+VkResult ivkCreateDescriptorPool(VkDevice device, uint32_t descriptorCount, VkDescriptorPool* outDescriptorPool) {
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = descriptorCount;
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes    = &poolSize;
+    poolInfo.maxSets       = descriptorCount;
+
+    return vkCreateDescriptorPool(device, &poolInfo, nullptr, outDescriptorPool);
 }
 
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool* outCommandPool) {

@@ -67,6 +67,9 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // create a command pool //
     assert(ivkCreateCommandPool(m_device, m_graphicsFamily, &m_commandPool) == VK_SUCCESS);
 
+    // create a descriptor pool //
+    assert(ivkCreateDescriptorPool(m_device, FRAMES_IN_FLIGHT, &m_descriptorPool) == VK_SUCCESS);
+
     // current frame //
     m_currentFrame = 0;
 
@@ -83,6 +86,9 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 }
 
 GraphicsDevice::~GraphicsDevice() {
+    // descriptor pool //
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+
     // command pool //
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     m_commandPool = VK_NULL_HANDLE;

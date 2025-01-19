@@ -57,33 +57,22 @@ int main() {
     DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout();
 
     // create descriptor pool //
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(FRAMES_IN_FLIGHT);
 
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes    = &poolSize;
-
-    poolInfo.maxSets = static_cast<uint32_t>(FRAMES_IN_FLIGHT);
-    VkDescriptorPool descriptorPool;
-    if (vkCreateDescriptorPool(device.m_device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor pool!");
-    }
 
     // create descriptor set //
-    std::vector<VkDescriptorSetLayout> layouts(FRAMES_IN_FLIGHT, descriptorSetLayout->vkDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo        allocInfo{};
+    VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts        = layouts.data();
+    allocInfo.descriptorPool     = device.m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
 
     std::vector<VkDescriptorSet> descriptorSets;
     descriptorSets.resize(FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(device.m_device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
+
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        if (vkAllocateDescriptorSets(device.m_device, &allocInfo, &descriptorSets[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
     }
 
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -115,6 +104,8 @@ int main() {
                                                                   VertexLayoutAttribute(offsetof(Vertex, col), Format::R32G32B32_SFLOAT)}),
                                                     1,
                                                     &descriptorSetLayout->vkDescriptorSetLayout);
+
+    device.free(descriptorSetLayout);
 
     // rendering loop //
     while (device.isWindowOpen(window)) {
@@ -169,8 +160,5 @@ int main() {
     }
     uniformBuffers.clear();
 
-    vkDestroyDescriptorPool(device.m_device, descriptorPool, nullptr);
-    device.free(descriptorSetLayout);
-    
     return 0;
 }

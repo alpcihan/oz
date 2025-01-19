@@ -58,6 +58,8 @@ VkResult ivkCreateGraphicsPipeline(VkDevice                              device,
                                    VkPipelineVertexInputStateCreateInfo* vertexInputInfo,
                                    VkPipeline*                           outGraphicsPipeline);
 
+VkResult ivkCreateDescriptorPool(VkDevice device, uint32_t descriptorCount, VkDescriptorPool* outDescriptorPool);
+
 VkResult ivkCreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPool* outCommandPool);
 
 VkResult ivkAllocateCommandBuffers(VkDevice         device,

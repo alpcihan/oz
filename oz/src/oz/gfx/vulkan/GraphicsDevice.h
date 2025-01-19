@@ -78,6 +78,8 @@ class GraphicsDevice final {
 
   public:
     VkDevice m_device = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE; // TODO: Support multiple and dynamic descriptor pool
+
 
   private:
     VkInstance       m_instance       = VK_NULL_HANDLE;

@@ -98,6 +98,7 @@ int main() {
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);
         CommandBuffer cmd        = device.getCurrentCommandBuffer();
+        uint32_t      frame      = device.getCurrentFrame();
 
         // update ubo //
         {
@@ -109,21 +110,14 @@ int main() {
             ubo.view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             ubo.proj  = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
             // ubo.proj[1][1] *= -1;
-            device.updateBuffer(uniformBuffers[device.getCurrentFrame()], &ubo, sizeof(ubo));
+            device.updateBuffer(uniformBuffers[frame], &ubo, sizeof(ubo));
         }
 
         device.beginCmd(cmd);
         device.beginRenderPass(cmd, renderPass, imageIndex);
         device.bindVertexBuffer(cmd, vertexBuffer);
         device.bindIndexBuffer(cmd, indexBuffer);
-        vkCmdBindDescriptorSets(cmd->vkCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                renderPass->vkPipelineLayout,
-                                0,
-                                1,
-                                &(descriptorSets[device.getCurrentFrame()]->vkDescriptorSet),
-                                0,
-                                nullptr);
+        device.bindDescriptorSet(cmd, renderPass, descriptorSets[frame]);
 
         device.drawIndexed(cmd, indices.size());
         device.endRenderPass(cmd);

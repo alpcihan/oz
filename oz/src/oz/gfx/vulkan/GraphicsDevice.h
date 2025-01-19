@@ -63,6 +63,7 @@ class GraphicsDevice final {
                      uint32_t      firstInstance = 0) const;
     void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
     void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
+    void bindDescriptorSet(CommandBuffer cmd, RenderPass renderPass, DescriptorSet descriptorSet);
 
     void updateBuffer(Buffer buffer, const void* data, size_t size);
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);

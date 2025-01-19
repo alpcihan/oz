@@ -501,7 +501,7 @@ DescriptorSet GraphicsDevice::createDescriptorSet(DescriptorSetLayout descriptor
     assert(vkAllocateDescriptorSets(m_device, &allocInfo, &vkDescriptorSet) == VK_SUCCESS);
 
     // create descriptor set object //
-    DescriptorSet descriptorSet = OZ_CREATE_VK_OBJECT(DescriptorSet);
+    DescriptorSet descriptorSet    = OZ_CREATE_VK_OBJECT(DescriptorSet);
     descriptorSet->vkDescriptorSet = vkDescriptorSet;
 
     return descriptorSet;
@@ -632,6 +632,17 @@ void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
 
 void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
     vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
+}
+
+void GraphicsDevice::bindDescriptorSet(CommandBuffer cmd, RenderPass pass, DescriptorSet descriptorSet) {
+    vkCmdBindDescriptorSets(cmd->vkCommandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pass->vkPipelineLayout,
+                            0,
+                            1,
+                            &(descriptorSet->vkDescriptorSet),
+                            0,
+                            nullptr);
 }
 
 void GraphicsDevice::updateBuffer(Buffer buffer, const void* data, size_t size) { memcpy(buffer->data, data, size); }

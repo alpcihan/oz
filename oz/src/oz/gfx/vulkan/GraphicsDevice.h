@@ -29,7 +29,7 @@ class GraphicsDevice final {
     Semaphore           createSemaphore();
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
-    DescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBindings);
+    DescriptorSetLayout createDescriptorSetLayout(const SetLayout& setLayout);
     DescriptorSet       createDescriptorSet(DescriptorSetLayout descriptorSetLayout);
 
     // sync //

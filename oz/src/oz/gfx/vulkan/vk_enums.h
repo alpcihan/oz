@@ -8,6 +8,8 @@ enum class ShaderStage : uint8_t { Vertex = 0x00000001, Fragment = 0x00000010, C
 
 enum class BufferType : uint8_t { Vertex, Uniform, Index, Staging };
 
+enum class BindingType : uint8_t { Uniform };
+
 enum class Format {
     UNDEFINED                                      = 0,
     R4G4_UNORM_PACK8                               = 1,

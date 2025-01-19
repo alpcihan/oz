@@ -465,7 +465,19 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     return buffer;
 }
 
-DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& descriptorSetLayoutBindings) {
+DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const SetLayout& setLayout) {
+    // create descriptor set layout bindings //
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings(setLayout.bindings.size());
+    for(int bindingIdx = 0; bindingIdx < setLayout.bindings.size(); bindingIdx++) {
+        const SetLayoutBinding& setLayoutBinding = setLayout.bindings[bindingIdx];
+
+        descriptorSetLayoutBindings[bindingIdx].binding = bindingIdx;
+        descriptorSetLayoutBindings[bindingIdx].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorSetLayoutBindings[bindingIdx].descriptorCount = 1;
+        descriptorSetLayoutBindings[bindingIdx].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        descriptorSetLayoutBindings[bindingIdx].pImmutableSamplers = nullptr;
+    };
+
     // create descriptor set layout //
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

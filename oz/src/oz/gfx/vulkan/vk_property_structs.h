@@ -15,9 +15,6 @@ struct VertexLayoutAttribute final {
     Format format;
 
     VertexLayoutAttribute(size_t _offset, Format _format) : offset(_offset), format(_format) {}
-
-    OZ_CHAINED_SETTER(setOffset, size_t, offset)
-    OZ_CHAINED_SETTER(setFormat, Format, format)
 };
 
 struct VertexLayout final {
@@ -25,7 +22,20 @@ struct VertexLayout final {
     std::vector<VertexLayoutAttribute> vertexLayoutAttributes;
 
     VertexLayout(uint32_t _vertexSize, std::vector<VertexLayoutAttribute> const& _vertexLayoutAttributes)
-        : vertexSize(_vertexSize), vertexLayoutAttributes(_vertexLayoutAttributes){}
+        : vertexSize(_vertexSize), vertexLayoutAttributes(_vertexLayoutAttributes) {}
+};
+
+struct SetLayoutBinding {
+    BindingType type;
+
+    SetLayoutBinding(BindingType _type) : type(_type) {}
+};
+
+struct SetLayout {
+    std::vector<SetLayoutBinding> bindings;
+
+    SetLayout(std::vector<SetLayoutBinding> const& _bindings)
+        : bindings(_bindings) {}
 };
 
 }; // namespace oz::gfx::vk

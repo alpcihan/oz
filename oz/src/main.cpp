@@ -56,24 +56,10 @@ int main() {
     }
 
     // create descriptor set layout //
-    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayouts = {
-        {
-            .binding            = 0,
-            .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount    = 1,
-            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = nullptr // Optional
-        },
-        {
-            .binding            = 1,
-            .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount    = 1,
-            .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = nullptr // Optional
-        },
-    };
-
-    DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout(descriptorSetLayouts);
+    DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout(SetLayout({
+        SetLayoutBinding(BindingType::Uniform),
+        SetLayoutBinding(BindingType::Uniform),
+    }));
 
     // create descriptor set //
     std::vector<DescriptorSet> descriptorSets(FRAMES_IN_FLIGHT);

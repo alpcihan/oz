@@ -198,11 +198,11 @@ VkResult ivkCreateFramebuffer(
     return vkCreateFramebuffer(device, &framebufferInfo, nullptr, outFramebuffer);
 }
 
-VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineLayout) {
+VkResult ivkCreatePipelineLayout(VkDevice device, uint32_t descriptorSetLayoutCount, VkDescriptorSetLayout* descriptorSetLayouts, VkPipelineLayout* outPipelineLayout) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount         = 0;
-    pipelineLayoutInfo.pSetLayouts            = nullptr;
+    pipelineLayoutInfo.setLayoutCount         = descriptorSetLayoutCount;
+    pipelineLayoutInfo.pSetLayouts            = descriptorSetLayouts;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges    = nullptr;
 

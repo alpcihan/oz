@@ -20,10 +20,15 @@ class GraphicsDevice final {
     Window        createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer createCommandBuffer();
     Shader        createShader(const std::string& path, ShaderStage stage);
-    RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout);
-    Semaphore  createSemaphore();
-    Fence      createFence();
-    Buffer     createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
+    RenderPass    createRenderPass(Shader                 vertexShader,
+                                   Shader                 fragmentShader,
+                                   Window                 window,
+                                   const VertexLayout&    vertexLayout,
+                                   uint32_t               descriptorSetLayoutCount,
+                                   VkDescriptorSetLayout* descriptorSetLayouts);
+    Semaphore     createSemaphore();
+    Fence         createFence();
+    Buffer        createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
 
     // sync //
     void waitIdle() const;
@@ -32,8 +37,9 @@ class GraphicsDevice final {
     void resetFences(Fence fence, uint32_t fenceCount) const;
 
     // state getters //
-    CommandBuffer getCurrentCommandBuffer();
+    CommandBuffer getCurrentCommandBuffer() const;
     uint32_t      getCurrentImage(Window window) const;
+    uint32_t      getCurrentFrame() const;
 
     // window //
     bool isWindowOpen(Window window) const;
@@ -56,6 +62,7 @@ class GraphicsDevice final {
     void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
     void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
 
+    void updateBuffer(Buffer buffer, const void* data, size_t size);
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);
 
     // free //

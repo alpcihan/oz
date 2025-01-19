@@ -306,14 +306,19 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     return shaderData;
 }
 
-RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout) {
+RenderPass GraphicsDevice::createRenderPass(Shader                 vertexShader,
+                                            Shader                 fragmentShader,
+                                            Window                 window,
+                                            const VertexLayout&    vertexLayout,
+                                            uint32_t               descriptorSetLayoutCount,
+                                            VkDescriptorSetLayout* descriptorSetLayouts) {
     // create render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
 
     // create pipeline layout //
     VkPipelineLayout vkPipelineLayout;
-    assert(ivkCreatePipelineLayout(m_device, &vkPipelineLayout) == VK_SUCCESS);
+    assert(ivkCreatePipelineLayout(m_device, descriptorSetLayoutCount, descriptorSetLayouts, &vkPipelineLayout) == VK_SUCCESS);
 
     // create vertex state input info // TODO: store at the VertexLayout struct instead of re-creating for each render pass
     VkPipelineVertexInputStateCreateInfo           vertexInputInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -391,6 +396,7 @@ Semaphore GraphicsDevice::createSemaphore() {
 
 Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const void* data) {
     // init buffer info and buffer flags //
+    bool                  persistent = false;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkBufferCreateInfo    bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -412,6 +418,8 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     case BufferType::Uniform:
         bufferInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        persistent = true;
+        break;
     default:
         throw std::runtime_error("Not supported buffer type!");
         break;
@@ -429,17 +437,24 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
 
     // copy the data to the buffer memory //
-    if (data != nullptr) {
-        void* pData;
+    void* pData = nullptr;
+    if (data == nullptr) {
+        if (persistent) {
+            vkMapMemory(m_device, vkBufferMemory, 0, size, 0, &pData);
+        }
+    } else {
         vkMapMemory(m_device, vkBufferMemory, 0, size, 0, &pData);
         memcpy(pData, data, (size_t)size);
-        vkUnmapMemory(m_device, vkBufferMemory);
+        if (!persistent) {
+            vkUnmapMemory(m_device, vkBufferMemory);
+        }
     }
 
     // create buffer object //
     Buffer buffer    = OZ_CREATE_VK_OBJECT(Buffer);
     buffer->vkBuffer = vkBuffer;
     buffer->vkMemory = vkBufferMemory;
+    buffer->data     = pData;
 
     return buffer;
 }
@@ -464,7 +479,7 @@ void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) 
 
 void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) const { vkResetFences(m_device, fenceCount, &fence->vkFence); }
 
-CommandBuffer GraphicsDevice::getCurrentCommandBuffer() { return m_commandBuffers[m_currentFrame]; }
+CommandBuffer GraphicsDevice::getCurrentCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
 
 uint32_t GraphicsDevice::getCurrentImage(Window window) const {
     glfwPollEvents();
@@ -482,6 +497,8 @@ uint32_t GraphicsDevice::getCurrentImage(Window window) const {
 
     return imageIndex;
 }
+
+uint32_t GraphicsDevice::getCurrentFrame() const { return m_currentFrame; }
 
 bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
 
@@ -568,6 +585,8 @@ void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
 void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
     vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
+
+void GraphicsDevice::updateBuffer(Buffer buffer, const void* data, size_t size) { memcpy(buffer->data, data, size); }
 
 void GraphicsDevice::copyBuffer(Buffer src, Buffer dst, uint64_t size) {
     VkCommandBufferAllocateInfo allocInfo{};

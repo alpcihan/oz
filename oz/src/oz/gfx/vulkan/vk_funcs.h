@@ -45,7 +45,7 @@ VkResult ivkCreateFramebuffer(VkDevice       device,
                               VkImageView    imageView,
                               VkFramebuffer* outFramebuffer);
 
-VkResult ivkCreatePipelineLayout(VkDevice device, VkPipelineLayout* outPipelineLayout);
+VkResult ivkCreatePipelineLayout(VkDevice device, uint32_t descriptorSetLayoutCount, VkDescriptorSetLayout* descriptorSetLayouts, VkPipelineLayout* outPipelineLayout);
 
 VkResult ivkCreateRenderPass(VkDevice device, VkFormat swapChainImageFormat, VkRenderPass* outRenderPass);
 

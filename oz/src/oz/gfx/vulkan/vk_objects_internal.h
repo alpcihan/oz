@@ -97,10 +97,12 @@ struct CommandBufferObject final : IObject {
 struct BufferObject final : IObject {
     VkBuffer       vkBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vkMemory = VK_NULL_HANDLE;
+    void*          data     = nullptr;
 
     void free(VkDevice vkDevice) override {
         vkDestroyBuffer(vkDevice, vkBuffer, nullptr);
         vkFreeMemory(vkDevice, vkMemory, nullptr);
+        data = nullptr;
     }
 };
 

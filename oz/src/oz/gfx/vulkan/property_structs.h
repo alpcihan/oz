@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_common.h"
+#include "oz/gfx/vulkan/common.h"
 
 namespace oz::gfx::vk {
 
@@ -28,4 +28,4 @@ struct VertexLayout final {
         : vertexSize(_vertexSize), vertexLayoutAttributes(_vertexLayoutAttributes){}
 };
 
-}; // namespace oz::gfx::vk
+}; // namespace oz::gfx::vk 

@@ -47,18 +47,29 @@ int main() {
     // create uniform buffers
     Buffer mvpBuffer   = device.createBuffer(BufferType::Uniform, sizeof(MVP));
     Buffer countBuffer = device.createBuffer(BufferType::Uniform, sizeof(uint32_t));
+    Buffer numBuffer   = device.createBuffer(BufferType::Uniform, sizeof(uint32_t));
 
-    // create descriptor set layout
-    DescriptorSetLayout descriptorSetLayout = device.createDescriptorSetLayout(DescriptorSetLayoutInfo({
+    // Create descriptor set layouts
+    DescriptorSetLayout mvpLayout = device.createDescriptorSetLayout(DescriptorSetLayoutInfo({
+        DescriptorSetLayoutBindingInfo(BindingType::Uniform),
+    }));
+
+    DescriptorSetLayout countLayout = device.createDescriptorSetLayout(DescriptorSetLayoutInfo({
         DescriptorSetLayoutBindingInfo(BindingType::Uniform),
         DescriptorSetLayoutBindingInfo(BindingType::Uniform),
     }));
 
-    // create descriptor set
-    DescriptorSet descriptorSet = device.createDescriptorSet(descriptorSetLayout, DescriptorSetInfo({
-        DescriptorSetBindingInfo(DescriptorSetBufferInfo(mvpBuffer, sizeof(MVP))),
-        DescriptorSetBindingInfo(DescriptorSetBufferInfo(countBuffer, sizeof(uint32_t))),
-    }));
+    // Create descriptor sets
+    DescriptorSet mvpSet = device.createDescriptorSet(mvpLayout,
+                                                      DescriptorSetInfo({
+                                                          DescriptorSetBindingInfo(DescriptorSetBufferInfo(mvpBuffer, sizeof(MVP))),
+                                                      }));
+
+    DescriptorSet countSet = device.createDescriptorSet(countLayout,
+                                                        DescriptorSetInfo({
+                                                            DescriptorSetBindingInfo(DescriptorSetBufferInfo(countBuffer, sizeof(uint32_t))),
+                                                            DescriptorSetBindingInfo(DescriptorSetBufferInfo(numBuffer, sizeof(uint32_t))),
+                                                        }));
 
     // create render pass
     RenderPass renderPass = device.createRenderPass(vertShader,
@@ -67,11 +78,13 @@ int main() {
                                                     VertexLayoutInfo(sizeof(Vertex),
                                                                      {VertexLayoutAttributeInfo(offsetof(Vertex, pos), Format::R32G32_SFLOAT),
                                                                       VertexLayoutAttributeInfo(offsetof(Vertex, col), Format::R32G32B32_SFLOAT)}),
-                                                    descriptorSetLayout);
+                                                    {mvpLayout, countLayout});
 
-    device.free(descriptorSetLayout);
+    device.free(mvpLayout);
+    device.free(countLayout);
 
     uint32_t frameCount = 0;
+    uint32_t num   = 1;
     // render loop
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);
@@ -90,13 +103,15 @@ int main() {
             // ubo.proj[1][1] *= -1;
             device.updateBuffer(mvpBuffer, &mvp, sizeof(mvp));
             device.updateBuffer(countBuffer, &frameCount, sizeof(frameCount));
+            device.updateBuffer(numBuffer, &num, sizeof(num));
         }
 
         device.beginCmd(cmd);
         device.beginRenderPass(cmd, renderPass, imageIndex);
         device.bindVertexBuffer(cmd, vertexBuffer);
         device.bindIndexBuffer(cmd, indexBuffer);
-        device.bindDescriptorSet(cmd, renderPass, descriptorSet);
+        device.bindDescriptorSet(cmd, renderPass, mvpSet, 0);
+        device.bindDescriptorSet(cmd, renderPass, countSet, 1);
 
         device.drawIndexed(cmd, indices.size());
         device.endRenderPass(cmd);
@@ -118,6 +133,7 @@ int main() {
     device.free(indexBuffer);
     device.free(mvpBuffer);
     device.free(countBuffer);
+    device.free(numBuffer);
 
     return 0;
 }

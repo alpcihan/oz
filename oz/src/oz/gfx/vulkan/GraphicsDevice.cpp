@@ -314,14 +314,18 @@ RenderPass GraphicsDevice::createRenderPass(Shader                  vertexShader
                                             Shader                  fragmentShader,
                                             Window                  window,
                                             const VertexLayoutInfo& vertexLayout,
-                                            DescriptorSetLayout     descriptorSetLayout) {
+                                            std::vector<DescriptorSetLayout> const& descriptorSetLayouts) {
     // create render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
 
     // create pipeline layout //
     VkPipelineLayout vkPipelineLayout;
-    assert(ivkCreatePipelineLayout(m_device, 1, &descriptorSetLayout->vkDescriptorSetLayout, &vkPipelineLayout) == VK_SUCCESS);
+    std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts;
+    for (const auto& layout : descriptorSetLayouts) {
+        vkDescriptorSetLayouts.push_back(layout->vkDescriptorSetLayout);
+    }
+    assert(ivkCreatePipelineLayout(m_device, vkDescriptorSetLayouts.size(), vkDescriptorSetLayouts.data(), &vkPipelineLayout) == VK_SUCCESS);
 
     // create vertex state input info // TODO: store at the VertexLayout struct instead of re-creating for each render pass
     VkPipelineVertexInputStateCreateInfo           vertexInputInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -656,11 +660,11 @@ void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
     vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
 
-void GraphicsDevice::bindDescriptorSet(CommandBuffer cmd, RenderPass pass, DescriptorSet descriptorSet) {
+void GraphicsDevice::bindDescriptorSet(CommandBuffer cmd, RenderPass renderPass, DescriptorSet descriptorSet, uint32_t setIndex) {
     vkCmdBindDescriptorSets(cmd->vkCommandBuffer,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pass->vkPipelineLayout,
-                            0,
+                            renderPass->vkPipelineLayout,
+                            setIndex,
                             1,
                             &(descriptorSet->vkDescriptorSet),
                             0,

@@ -114,8 +114,12 @@ struct DescriptorSetLayoutObject final : IObject {
 
 struct DescriptorSetObject final : IObject {
     VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
-
-    void free(VkDevice vkDevice) override {}
+    VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
+    void free(VkDevice vkDevice) override {
+        if (vkDescriptorSet != VK_NULL_HANDLE) {
+            vkFreeDescriptorSets(vkDevice, vkDescriptorPool, 1, &vkDescriptorSet);
+        }
+    }
 };
 
 #define OZ_CREATE_VK_OBJECT(TYPE) new TYPE##Object

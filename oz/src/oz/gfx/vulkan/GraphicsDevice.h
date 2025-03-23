@@ -20,11 +20,11 @@ class GraphicsDevice final {
     Window              createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer       createCommandBuffer();
     Shader              createShader(const std::string& path, ShaderStage stage);
-    RenderPass          createRenderPass(Shader                  vertexShader,
-                                         Shader                  fragmentShader,
-                                         Window                  window,
-                                         const VertexLayoutInfo& vertexLayout,
-                                         DescriptorSetLayout     descriptorSetLayout);
+    RenderPass          createRenderPass(Shader                                  vertexShader,
+                                         Shader                                  fragmentShader,
+                                         Window                                  window,
+                                         const VertexLayoutInfo&                 vertexLayout,
+                                         std::vector<DescriptorSetLayout> const& descriptorSetLayouts);
     Semaphore           createSemaphore();
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
@@ -61,7 +61,7 @@ class GraphicsDevice final {
                      uint32_t      firstInstance = 0) const;
     void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
     void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
-    void bindDescriptorSet(CommandBuffer cmd, RenderPass renderPass, DescriptorSet descriptorSet);
+    void bindDescriptorSet(CommandBuffer cmd, RenderPass renderPass, DescriptorSet descriptorSet, uint32_t setIndex = 0);
 
     void updateBuffer(Buffer buffer, const void* data, size_t size);
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);
@@ -75,6 +75,7 @@ class GraphicsDevice final {
     void free(CommandBuffer commandBuffer) const;
     void free(Buffer buffer) const;
     void free(DescriptorSetLayout descriptorSetLayout) const;
+    void free(DescriptorSet descriptorSet) const;
 
   public:
     VkDevice m_device = VK_NULL_HANDLE;

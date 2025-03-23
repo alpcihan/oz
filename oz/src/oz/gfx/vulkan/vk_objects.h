@@ -4,9 +4,7 @@
 
 namespace oz::gfx::vk {
 
-#define OZ_VK_OBJECT(NAME) \
-    struct NAME##Object;   \
-    typedef NAME##Object* NAME;
+#define OZ_VK_OBJECT(NAME) typedef struct NAME##Object* NAME;
 
 OZ_VK_OBJECT(Window);
 OZ_VK_OBJECT(Shader);

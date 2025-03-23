@@ -10,32 +10,56 @@ namespace oz::gfx::vk {
         return *this;                           \
     }
 
-struct VertexLayoutAttribute final {
+// Vertex Info
+
+struct VertexLayoutAttributeInfo final {
     size_t offset;
     Format format;
 
-    VertexLayoutAttribute(size_t _offset, Format _format) : offset(_offset), format(_format) {}
+    VertexLayoutAttributeInfo(size_t _offset, Format _format) : offset(_offset), format(_format) {}
 };
 
-struct VertexLayout final {
-    uint32_t                           vertexSize;
-    std::vector<VertexLayoutAttribute> vertexLayoutAttributes;
+struct VertexLayoutInfo final {
+    uint32_t                               vertexSize;
+    std::vector<VertexLayoutAttributeInfo> vertexLayoutAttributes;
 
-    VertexLayout(uint32_t _vertexSize, std::vector<VertexLayoutAttribute> const& _vertexLayoutAttributes)
+    VertexLayoutInfo(uint32_t _vertexSize, std::vector<VertexLayoutAttributeInfo> const& _vertexLayoutAttributes)
         : vertexSize(_vertexSize), vertexLayoutAttributes(_vertexLayoutAttributes) {}
 };
 
-struct SetLayoutBinding {
+// Descriptor Set Layout Info
+
+struct DescriptorSetLayoutBindingInfo {
     BindingType type;
 
-    SetLayoutBinding(BindingType _type) : type(_type) {}
+    DescriptorSetLayoutBindingInfo(BindingType _type) : type(_type) {}
 };
 
-struct SetLayout {
-    std::vector<SetLayoutBinding> bindings;
+struct DescriptorSetLayoutInfo {
+    std::vector<DescriptorSetLayoutBindingInfo> bindings;
 
-    SetLayout(std::vector<SetLayoutBinding> const& _bindings)
-        : bindings(_bindings) {}
+    DescriptorSetLayoutInfo(std::vector<DescriptorSetLayoutBindingInfo> const& _bindings) : bindings(_bindings) {}
+};
+
+// Descriptor Set Info
+
+struct DescriptorSetBufferInfo {
+    Buffer buffer;
+    size_t range;
+
+    DescriptorSetBufferInfo(Buffer _buffer, size_t _range) : buffer(_buffer), range(_range) {}
+};  
+
+struct DescriptorSetBindingInfo {
+    DescriptorSetBufferInfo bufferInfo;
+
+    DescriptorSetBindingInfo(DescriptorSetBufferInfo _bufferInfo) : bufferInfo(_bufferInfo) {}
+};
+
+struct DescriptorSetInfo {
+    std::vector<DescriptorSetBindingInfo> bindings;
+
+    DescriptorSetInfo(std::vector<DescriptorSetBindingInfo> const& _bindings) : bindings(_bindings) {}
 };
 
 }; // namespace oz::gfx::vk

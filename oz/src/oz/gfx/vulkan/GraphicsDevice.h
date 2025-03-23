@@ -20,17 +20,17 @@ class GraphicsDevice final {
     Window              createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer       createCommandBuffer();
     Shader              createShader(const std::string& path, ShaderStage stage);
-    RenderPass          createRenderPass(Shader                 vertexShader,
-                                         Shader                 fragmentShader,
-                                         Window                 window,
-                                         const VertexLayout&    vertexLayout,
-                                         uint32_t               descriptorSetLayoutCount,
-                                         VkDescriptorSetLayout* descriptorSetLayouts);
+    RenderPass          createRenderPass(Shader                  vertexShader,
+                                         Shader                  fragmentShader,
+                                         Window                  window,
+                                         const VertexLayoutInfo& vertexLayout,
+                                         uint32_t                descriptorSetLayoutCount,
+                                         VkDescriptorSetLayout*  descriptorSetLayouts);
     Semaphore           createSemaphore();
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
-    DescriptorSetLayout createDescriptorSetLayout(const SetLayout& setLayout);
-    DescriptorSet       createDescriptorSet(DescriptorSetLayout descriptorSetLayout);
+    DescriptorSetLayout createDescriptorSetLayout(const DescriptorSetLayoutInfo& setLayout);
+    DescriptorSet       createDescriptorSet(DescriptorSetLayout descriptorSetLayout, const DescriptorSetInfo& descriptorSetInfo);
 
     // sync //
     void waitIdle() const;
@@ -53,8 +53,7 @@ class GraphicsDevice final {
     void submitCmd(CommandBuffer cmd) const;
     void beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
     void endRenderPass(CommandBuffer cmd) const;
-    void draw(
-        CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
+    void draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
     void drawIndexed(CommandBuffer cmd,
                      uint32_t      indexCount,
                      uint32_t      instanceCount = 1,
@@ -79,8 +78,7 @@ class GraphicsDevice final {
     void free(DescriptorSetLayout descriptorSetLayout) const;
 
   public:
-    VkDevice         m_device         = VK_NULL_HANDLE;
-    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE; // TODO: Support multiple and dynamic descriptor pool
+    VkDevice m_device = VK_NULL_HANDLE;
 
   private:
     VkInstance       m_instance       = VK_NULL_HANDLE;
@@ -90,7 +88,8 @@ class GraphicsDevice final {
     std::vector<VkQueueFamilyProperties> m_queueFamilies;
     uint32_t                             m_graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
 
-    VkCommandPool m_commandPool = VK_NULL_HANDLE; // TODO: Support multiple command pools
+    VkCommandPool    m_commandPool    = VK_NULL_HANDLE; // TODO: Support multiple command pools
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE; // TODO: Support multiple and dynamic descriptor pool
 
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 

@@ -6,7 +6,7 @@
 namespace oz::gfx::vk {
 
 namespace {
-static constexpr int FRAMES_IN_FLIGHT = 2;
+static constexpr int FRAMES_IN_FLIGHT = 1;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT             messageType,
@@ -27,10 +27,9 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     uint32_t     extensionCount = 0;
     const char** extensions     = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    const std::vector<const char*> requiredExtensions = ivkPopulateExtensions();
-    const std::vector<const char*> requiredInstanceExtensions =
-        ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
-    const std::vector<const char*> layers = ivkPopulateLayers(enableValidationLayers);
+    const std::vector<const char*> requiredExtensions         = ivkPopulateExtensions();
+    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
+    const std::vector<const char*> layers                     = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
 
@@ -202,9 +201,8 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
                 VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-                actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-                actualExtent.height =
-                    std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+                actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+                actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
                 vkSwapChainExtent = actualExtent;
             }
@@ -312,12 +310,12 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     return shaderData;
 }
 
-RenderPass GraphicsDevice::createRenderPass(Shader                 vertexShader,
-                                            Shader                 fragmentShader,
-                                            Window                 window,
-                                            const VertexLayout&    vertexLayout,
-                                            uint32_t               descriptorSetLayoutCount,
-                                            VkDescriptorSetLayout* descriptorSetLayouts) {
+RenderPass GraphicsDevice::createRenderPass(Shader                  vertexShader,
+                                            Shader                  fragmentShader,
+                                            Window                  window,
+                                            const VertexLayoutInfo& vertexLayout,
+                                            uint32_t                descriptorSetLayoutCount,
+                                            VkDescriptorSetLayout*  descriptorSetLayouts) {
     // create render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
@@ -372,9 +370,8 @@ RenderPass GraphicsDevice::createRenderPass(Shader                 vertexShader,
     // create frame buffers //
     std::vector<VkFramebuffer> vkFrameBuffers(window->vkSwapChainImageViews.size());
     for (size_t i = 0; i < window->vkSwapChainImageViews.size(); i++) {
-        assert(
-            ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) ==
-            VK_SUCCESS);
+        assert(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) ==
+               VK_SUCCESS);
     }
 
     // create render pass object //
@@ -465,20 +462,20 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     return buffer;
 }
 
-DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const SetLayout& setLayout) {
-    // create descriptor set layout bindings //
+DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const DescriptorSetLayoutInfo& setLayout) {
+    // create descriptor set layout bindings
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings(setLayout.bindings.size());
-    for(int bindingIdx = 0; bindingIdx < setLayout.bindings.size(); bindingIdx++) {
-        const SetLayoutBinding& setLayoutBinding = setLayout.bindings[bindingIdx];
+    for (int bindingIdx = 0; bindingIdx < setLayout.bindings.size(); bindingIdx++) {
+        const DescriptorSetLayoutBindingInfo& setLayoutBinding = setLayout.bindings[bindingIdx];
 
-        descriptorSetLayoutBindings[bindingIdx].binding = bindingIdx;
-        descriptorSetLayoutBindings[bindingIdx].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorSetLayoutBindings[bindingIdx].descriptorCount = 1;
-        descriptorSetLayoutBindings[bindingIdx].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        descriptorSetLayoutBindings[bindingIdx].binding            = bindingIdx;
+        descriptorSetLayoutBindings[bindingIdx].descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorSetLayoutBindings[bindingIdx].descriptorCount    = 1;
+        descriptorSetLayoutBindings[bindingIdx].stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
         descriptorSetLayoutBindings[bindingIdx].pImmutableSamplers = nullptr;
     };
 
-    // create descriptor set layout //
+    // create descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = descriptorSetLayoutBindings.size();
@@ -494,16 +491,42 @@ DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const SetLayout& s
     return descriptorSetLayout;
 }
 
-DescriptorSet GraphicsDevice::createDescriptorSet(DescriptorSetLayout descriptorSetLayout) {
-    // create descriptor set //
+DescriptorSet GraphicsDevice::createDescriptorSet(DescriptorSetLayout descriptorSetLayout, const DescriptorSetInfo& descriptorSetInfo) {
+    // create descriptor set
     VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
+    {
+        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool     = m_descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
+    }
 
+    // allocate descriptor sets
     VkDescriptorSet vkDescriptorSet;
     assert(vkAllocateDescriptorSets(m_device, &allocInfo, &vkDescriptorSet) == VK_SUCCESS);
+
+    // update descriptor sets
+    for (int bindingIdx = 0; bindingIdx < descriptorSetInfo.bindings.size(); bindingIdx++) {
+        const DescriptorSetBindingInfo& descriptorSetBinding = descriptorSetInfo.bindings[bindingIdx];
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = descriptorSetBinding.bufferInfo.buffer->vkBuffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range  = descriptorSetBinding.bufferInfo.range;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet           = vkDescriptorSet;
+        descriptorWrite.dstBinding       = bindingIdx;
+        descriptorWrite.dstArrayElement  = 0;
+        descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount  = 1;
+        descriptorWrite.pBufferInfo      = &bufferInfo;
+        descriptorWrite.pImageInfo       = nullptr; // Optional
+        descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+        vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+    }
 
     // create descriptor set object //
     DescriptorSet descriptorSet    = OZ_CREATE_VK_OBJECT(DescriptorSet);
@@ -617,17 +640,12 @@ void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, u
 
 void GraphicsDevice::endRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
 
-void GraphicsDevice::draw(
-    CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+void GraphicsDevice::draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void GraphicsDevice::drawIndexed(CommandBuffer cmd,
-                                 uint32_t      indexCount,
-                                 uint32_t      instanceCount,
-                                 uint32_t      firstIndex,
-                                 uint32_t      vertexOffset,
-                                 uint32_t      firstInstance) const {
+void GraphicsDevice::drawIndexed(
+    CommandBuffer cmd, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) const {
     vkCmdDrawIndexed(cmd->vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 

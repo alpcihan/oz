@@ -16,4 +16,4 @@ OZ_VK_OBJECT(Buffer);
 OZ_VK_OBJECT(DescriptorSetLayout);
 OZ_VK_OBJECT(DescriptorSet);
 
-} // namespace oz::gfx::vk
+} // namespace oz::gfx::vk 

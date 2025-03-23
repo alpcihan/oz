@@ -131,4 +131,4 @@ struct DescriptorSetObject final : IObject {
         vkObject = nullptr;                   \
     } //\
 
-} // namespace oz::gfx::vk
+} // namespace oz::gfx::vk 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_common.h"
+#include "oz/gfx/vulkan/common.h"
 
 namespace oz::gfx::vk {
 
@@ -16,4 +16,4 @@ OZ_VK_OBJECT(Semaphore);
 OZ_VK_OBJECT(CommandBuffer);
 OZ_VK_OBJECT(Buffer);
 
-} // namespace oz::gfx::vk
+} // namespace oz::gfx::vk 

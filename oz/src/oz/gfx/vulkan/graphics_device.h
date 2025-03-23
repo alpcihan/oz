@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_common.h"
+#include "oz/gfx/vulkan/common.h"
 
 namespace oz::gfx::vk {
 
@@ -40,20 +40,20 @@ class GraphicsDevice final {
     void presentImage(Window window, uint32_t imageIndex);
 
     // command methods
-    void beginCmd(CommandBuffer cmd, bool isSingleUse = false) const;
-    void endCmd(CommandBuffer cmd) const;
-    void submitCmd(CommandBuffer cmd) const;
-    void beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
-    void endRenderPass(CommandBuffer cmd) const;
-    void draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
-    void drawIndexed(CommandBuffer cmd,
-                     uint32_t      indexCount,
-                     uint32_t      instanceCount = 1,
-                     uint32_t      firstIndex    = 0,
-                     uint32_t      vertexOffset  = 0,
-                     uint32_t      firstInstance = 0) const;
-    void bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
-    void bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
+    void cmdBegin(CommandBuffer cmd, bool isSingleUse = false) const;
+    void cmdEnd(CommandBuffer cmd) const;
+    void cmdSubmit(CommandBuffer cmd) const;
+    void cmdBeginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
+    void cmdEndRenderPass(CommandBuffer cmd) const;
+    void cmdDraw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
+    void cmdDrawIndexed(CommandBuffer cmd,
+                        uint32_t      indexCount,
+                        uint32_t      instanceCount = 1,
+                        uint32_t      firstIndex    = 0,
+                        uint32_t      vertexOffset  = 0,
+                        uint32_t      firstInstance = 0) const;
+    void cmdBindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer);
+    void cmdBindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer);
 
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);
 

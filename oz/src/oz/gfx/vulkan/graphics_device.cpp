@@ -1,6 +1,6 @@
 #include "oz/gfx/vulkan/graphics_device.h"
 #include "oz/core/file/file.h"
-#include "oz/gfx/vulkan/vk_objects_internal.h"
+#include "oz/gfx/vulkan/objects_internal.h"
 
 #define OZ_VK_ASSERT(x) assert((x) == VK_SUCCESS)
 
@@ -863,7 +863,7 @@ void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
-void GraphicsDevice::beginCmd(CommandBuffer cmd, bool isSingleUse) const {
+void GraphicsDevice::cmdBegin(CommandBuffer cmd, bool isSingleUse) const {
     vkResetCommandBuffer(cmd->vkCommandBuffer, 0);
 
     VkCommandBufferBeginInfo beginInfo{};
@@ -874,9 +874,9 @@ void GraphicsDevice::beginCmd(CommandBuffer cmd, bool isSingleUse) const {
     OZ_VK_ASSERT(vkBeginCommandBuffer(cmd->vkCommandBuffer, &beginInfo));
 }
 
-void GraphicsDevice::endCmd(CommandBuffer cmd) const { OZ_VK_ASSERT(vkEndCommandBuffer(cmd->vkCommandBuffer)); }
+void GraphicsDevice::cmdEnd(CommandBuffer cmd) const { OZ_VK_ASSERT(vkEndCommandBuffer(cmd->vkCommandBuffer)); }
 
-void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
+void GraphicsDevice::cmdSubmit(CommandBuffer cmd) const {
     // submit command buffer
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     {
@@ -895,7 +895,7 @@ void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
     }
 }
 
-void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
+void GraphicsDevice::cmdBeginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass        = renderPass->vkRenderPass;
@@ -924,22 +924,22 @@ void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, u
     vkCmdSetScissor(cmd->vkCommandBuffer, 0, 1, &scissor);
 }
 
-void GraphicsDevice::endRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
+void GraphicsDevice::cmdEndRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
 
-void GraphicsDevice::draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+void GraphicsDevice::cmdDraw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void GraphicsDevice::drawIndexed(
+void GraphicsDevice::cmdDrawIndexed(
     CommandBuffer cmd, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) const {
     vkCmdDrawIndexed(cmd->vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
+void GraphicsDevice::cmdBindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
     vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
 }
 
-void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
+void GraphicsDevice::cmdBindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
     vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
 

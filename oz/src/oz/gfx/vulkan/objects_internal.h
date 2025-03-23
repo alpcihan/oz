@@ -1,6 +1,6 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_common.h"
+#include "oz/gfx/vulkan/common.h"
 
 namespace oz::gfx::vk {
 
@@ -113,4 +113,4 @@ struct BufferObject final : IObject {
         vkObject = nullptr;                   \
     } //\
 
-} // namespace oz::gfx::vk
+} // namespace oz::gfx::vk 

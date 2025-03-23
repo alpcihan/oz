@@ -100,7 +100,7 @@ int main() {
             mvp.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             mvp.view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             mvp.proj  = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
-            // ubo.proj[1][1] *= -1;
+            mvp.proj[1][1] *= -1;
             device.updateBuffer(mvpBuffer, &mvp, sizeof(mvp));
             device.updateBuffer(countBuffer, &frameCount, sizeof(frameCount));
             device.updateBuffer(numBuffer, &num, sizeof(num));

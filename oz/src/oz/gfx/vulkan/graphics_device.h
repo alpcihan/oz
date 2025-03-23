@@ -25,7 +25,7 @@ class GraphicsDevice final {
                                          Shader                                  fragmentShader,
                                          Window                                  window,
                                          const VertexLayoutInfo&                 vertexLayout,
-                                         std::vector<DescriptorSetLayout> const& descriptorSetLayouts);
+                                         const std::vector<DescriptorSetLayout>& descriptorSetLayouts);
     Semaphore           createSemaphore();
     Fence               createFence();
     Buffer              createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);

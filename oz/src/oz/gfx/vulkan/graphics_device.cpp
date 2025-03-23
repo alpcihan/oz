@@ -1,4 +1,4 @@
-#include "oz/gfx/vulkan/GraphicsDevice.h"
+#include "oz/gfx/vulkan/graphics_device.h"
 #include "oz/core/file/file.h"
 #include "oz/gfx/vulkan/vk_objects_internal.h"
 

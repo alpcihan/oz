@@ -1,4 +1,3 @@
-#include "oz/gfx/vulkan/vk_objects_internal.h"
 #include "oz/oz.h"
 using namespace oz::gfx::vk;
 
@@ -68,13 +67,12 @@ int main() {
                                                     VertexLayoutInfo(sizeof(Vertex),
                                                                      {VertexLayoutAttributeInfo(offsetof(Vertex, pos), Format::R32G32_SFLOAT),
                                                                       VertexLayoutAttributeInfo(offsetof(Vertex, col), Format::R32G32B32_SFLOAT)}),
-                                                    1,
-                                                    &descriptorSetLayout->vkDescriptorSetLayout);
+                                                    descriptorSetLayout);
 
     device.free(descriptorSetLayout);
 
-    uint32_t count = 0;
-    // rendering loop
+    uint32_t frameCount = 0;
+    // render loop
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);
         CommandBuffer cmd        = device.getCurrentCommandBuffer();
@@ -91,7 +89,7 @@ int main() {
             mvp.proj  = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
             // ubo.proj[1][1] *= -1;
             device.updateBuffer(mvpBuffer, &mvp, sizeof(mvp));
-            device.updateBuffer(countBuffer, &count, sizeof(count));
+            device.updateBuffer(countBuffer, &frameCount, sizeof(frameCount));
         }
 
         device.beginCmd(cmd);
@@ -107,7 +105,7 @@ int main() {
         device.submitCmd(cmd);
         device.presentImage(window, imageIndex);
 
-        count++;
+        frameCount++;
     }
     device.waitIdle();
 

@@ -314,15 +314,14 @@ RenderPass GraphicsDevice::createRenderPass(Shader                  vertexShader
                                             Shader                  fragmentShader,
                                             Window                  window,
                                             const VertexLayoutInfo& vertexLayout,
-                                            uint32_t                descriptorSetLayoutCount,
-                                            VkDescriptorSetLayout*  descriptorSetLayouts) {
+                                            DescriptorSetLayout     descriptorSetLayout) {
     // create render pass //
     VkRenderPass vkRenderPass;
     assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
 
     // create pipeline layout //
     VkPipelineLayout vkPipelineLayout;
-    assert(ivkCreatePipelineLayout(m_device, descriptorSetLayoutCount, descriptorSetLayouts, &vkPipelineLayout) == VK_SUCCESS);
+    assert(ivkCreatePipelineLayout(m_device, 1, &descriptorSetLayout->vkDescriptorSetLayout, &vkPipelineLayout) == VK_SUCCESS);
 
     // create vertex state input info // TODO: store at the VertexLayout struct instead of re-creating for each render pass
     VkPipelineVertexInputStateCreateInfo           vertexInputInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};

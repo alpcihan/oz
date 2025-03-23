@@ -1,6 +1,6 @@
 #include "oz/gfx/vulkan/graphics_device.h"
 #include "oz/core/file/file.h"
-#include "oz/gfx/vulkan/vk_objects_internal.h"
+#include "oz/gfx/vulkan/objects_internal.h"
 
 namespace oz::gfx::vk {
 

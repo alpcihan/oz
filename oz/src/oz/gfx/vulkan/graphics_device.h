@@ -1,7 +1,8 @@
 #pragma once
 
-#include "oz/gfx/vulkan/vk_common.h"
-
+#include "oz/gfx/vulkan/common.h"
+#include "oz/gfx/vulkan/objects.h"
+#include "oz/gfx/vulkan/property_structs.h"
 namespace oz::gfx::vk {
 
 class GraphicsDevice final {

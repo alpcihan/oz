@@ -20,10 +20,10 @@ class GraphicsDevice final {
     Window        createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer createCommandBuffer();
     Shader        createShader(const std::string& path, ShaderStage stage);
-    RenderPass createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout);
-    Semaphore  createSemaphore();
-    Fence      createFence();
-    Buffer     createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
+    RenderPass    createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout);
+    Semaphore     createSemaphore();
+    Fence         createFence();
+    Buffer        createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
 
     // sync //
     void waitIdle() const;
@@ -45,8 +45,7 @@ class GraphicsDevice final {
     void submitCmd(CommandBuffer cmd) const;
     void beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const;
     void endRenderPass(CommandBuffer cmd) const;
-    void draw(
-        CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
+    void draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) const;
     void drawIndexed(CommandBuffer cmd,
                      uint32_t      indexCount,
                      uint32_t      instanceCount = 1,

@@ -27,10 +27,9 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     uint32_t     extensionCount = 0;
     const char** extensions     = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    const std::vector<const char*> requiredExtensions = ivkPopulateExtensions();
-    const std::vector<const char*> requiredInstanceExtensions =
-        ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
-    const std::vector<const char*> layers = ivkPopulateLayers(enableValidationLayers);
+    const std::vector<const char*> requiredExtensions         = ivkPopulateExtensions();
+    const std::vector<const char*> requiredInstanceExtensions = ivkPopulateInstanceExtensions(extensions, extensionCount, enableValidationLayers);
+    const std::vector<const char*> layers                     = ivkPopulateLayers(enableValidationLayers);
 
     assert(ivkAreLayersSupported(layers));
 
@@ -39,42 +38,149 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 
     VkResult result;
 
-    // create instance //
-    result = ivkCreateInstance(static_cast<uint32_t>(requiredInstanceExtensions.size()),
-                               requiredInstanceExtensions.data(),
-                               static_cast<uint32_t>(layers.size()),
-                               layers.data(),
-                               enableValidationLayers ? &debugCreateInfo : nullptr,
-                               &m_instance);
-    assert(result == VK_SUCCESS);
+    // create instance
+    {
+        // app info
+        VkApplicationInfo appInfo{};
+        appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName   = "oz";
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.pEngineName        = "oz";
+        appInfo.apiVersion         = VK_API_VERSION_1_0;
 
-    // create debug messenger //
-    if (enableValidationLayers) {
-        result = ivkCreateDebugMessenger(m_instance, debugCreateInfo, &m_debugMessenger);
+        // instance create info
+        VkInstanceCreateInfo createInfo{};
+        createInfo.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        createInfo.pNext                   = &debugCreateInfo;
+        createInfo.pApplicationInfo        = &appInfo;
+        createInfo.enabledLayerCount       = static_cast<uint32_t>(layers.size());
+        createInfo.ppEnabledLayerNames     = layers.data();
+        createInfo.enabledExtensionCount   = static_cast<uint32_t>(requiredInstanceExtensions.size());
+        createInfo.ppEnabledExtensionNames = requiredInstanceExtensions.data();
+        createInfo.flags                   = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+
+        result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         assert(result == VK_SUCCESS);
     }
 
-    // pick physical device //
-    ivkPickPhysicalDevice(m_instance, requiredExtensions, &m_physicalDevice, &m_queueFamilies, &m_graphicsFamily);
-    assert(m_physicalDevice != VK_NULL_HANDLE);
+    // create debug messenger
+    if (enableValidationLayers) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
+        // TODO: check func != nullptr
+        result = func(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger);
+        assert(result == VK_SUCCESS);
+    }
 
-    // create logical device // TODO: support multiple queue families
-    assert(ivkCreateLogicalDevice(m_physicalDevice, {m_graphicsFamily}, requiredExtensions, layers, &m_device) == VK_SUCCESS);
+    // pick physical device
+    {
+        // get physical devices
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+        assert(deviceCount > 0);
+        std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
+        vkEnumeratePhysicalDevices(m_instance, &deviceCount, physicalDevices.data());
 
-    // get device queues //
+        // find "suitable" GPU
+        bool isGPUFound = false;
+        for (const auto& physicalDevice : physicalDevices) {
+            // check queue family support
+            std::optional<uint32_t> graphicsFamily;
+            uint32_t                queueFamilyCount = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+            m_queueFamilies.resize(queueFamilyCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, m_queueFamilies.data());
+            for (int i = 0; i < m_queueFamilies.size(); i++) {
+                const auto& queueFamily = m_queueFamilies[i];
+
+                // graphics family
+                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                    graphicsFamily = i;
+                    break;
+                }
+            }
+            bool areQueueFamiliesSupported = graphicsFamily.has_value();
+
+            // check extension support
+            uint32_t extensionCount;
+            vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+            vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+            uint32_t extensionMatchCount = 0;
+            for (const auto& availableExtension : availableExtensions) {
+                for (const auto& requiredExtension : requiredExtensions) {
+                    if (strcmp(requiredExtension, availableExtension.extensionName) == 0) {
+                        extensionMatchCount++;
+                    }
+                }
+            }
+            bool areExtensionsSupported = extensionMatchCount == (uint32_t)requiredExtensions.size();
+
+            // check if the GPU is suitable
+            bool isSuitable = areExtensionsSupported && areQueueFamiliesSupported;
+
+            if (isSuitable) {
+                m_graphicsFamily = graphicsFamily.value();
+                m_physicalDevice = physicalDevice;
+                isGPUFound = true;
+                break;
+            }
+        }
+        assert(isGPUFound);
+    }
+
+    // create logical device
+    {
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+        float queuePriority = 1.0f;
+        for (uint32_t queueFamily : std::vector<uint32_t>{m_graphicsFamily}) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
+
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+        VkDeviceCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+        createInfo.ppEnabledLayerNames = layers.data();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+        createInfo.ppEnabledExtensionNames = requiredExtensions.data();
+        createInfo.pEnabledFeatures = &deviceFeatures;
+
+        assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
+    }
+
+    // get device queues
     vkGetDeviceQueue(m_device, m_graphicsFamily, 0, &m_graphicsQueue);
 
-    // create a command pool //
-    assert(ivkCreateCommandPool(m_device, m_graphicsFamily, &m_commandPool) == VK_SUCCESS);
+    // create a command pool
+    {
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = m_graphicsFamily;
 
-    // current frame //
+        assert(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS);
+    }
+
+    // init current frame
     m_currentFrame = 0;
 
-    // command buffers //
+    // create command buffers
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++)
+    {
         m_commandBuffers.emplace_back(std::move(createCommandBuffer()));
+    }
 
-    // synchronization //
+    // create synchronization objects
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
         m_imageAvailableSemaphores.push_back(createSemaphore());
         m_renderFinishedSemaphores.push_back(createSemaphore());
@@ -196,9 +302,8 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
                 VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-                actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-                actualExtent.height =
-                    std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+                actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+                actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
                 vkSwapChainExtent = actualExtent;
             }
@@ -361,9 +466,8 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
     // create frame buffers //
     std::vector<VkFramebuffer> vkFrameBuffers(window->vkSwapChainImageViews.size());
     for (size_t i = 0; i < window->vkSwapChainImageViews.size(); i++) {
-        assert(
-            ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) ==
-            VK_SUCCESS);
+        assert(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) ==
+               VK_SUCCESS);
     }
 
     // create render pass object //
@@ -547,17 +651,12 @@ void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, u
 
 void GraphicsDevice::endRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
 
-void GraphicsDevice::draw(
-    CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+void GraphicsDevice::draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void GraphicsDevice::drawIndexed(CommandBuffer cmd,
-                                 uint32_t      indexCount,
-                                 uint32_t      instanceCount,
-                                 uint32_t      firstIndex,
-                                 uint32_t      vertexOffset,
-                                 uint32_t      firstInstance) const {
+void GraphicsDevice::drawIndexed(
+    CommandBuffer cmd, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) const {
     vkCmdDrawIndexed(cmd->vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 

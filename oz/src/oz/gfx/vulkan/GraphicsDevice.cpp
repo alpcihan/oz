@@ -3,6 +3,8 @@
 #include "oz/gfx/vulkan/vk_funcs.h"
 #include "oz/gfx/vulkan/vk_objects_internal.h"
 
+#define OZ_VK_ASSERT(x) assert((x) == VK_SUCCESS)
+
 namespace oz::gfx::vk {
 
 namespace {
@@ -36,8 +38,6 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo =
         enableValidationLayers ? ivkPopulateDebugMessengerCreateInfo(debugCallback) : VkDebugUtilsMessengerCreateInfoEXT{};
 
-    VkResult result;
-
     // create instance
     {
         // app info
@@ -59,16 +59,14 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         createInfo.ppEnabledExtensionNames = requiredInstanceExtensions.data();
         createInfo.flags                   = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
-        result = vkCreateInstance(&createInfo, nullptr, &m_instance);
-        assert(result == VK_SUCCESS);
+        OZ_VK_ASSERT(vkCreateInstance(&createInfo, nullptr, &m_instance));
     }
 
     // create debug messenger
     if (enableValidationLayers) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
         // TODO: check func != nullptr
-        result = func(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger);
-        assert(result == VK_SUCCESS);
+        OZ_VK_ASSERT(func(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger));
     }
 
     // pick physical device
@@ -155,7 +153,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         createInfo.ppEnabledExtensionNames = requiredExtensions.data();
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        assert(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
+        OZ_VK_ASSERT(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device));
     }
 
     // get device queues
@@ -168,7 +166,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = m_graphicsFamily;
 
-        assert(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) == VK_SUCCESS);
+        OZ_VK_ASSERT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool));
     }
 
     // init current frame
@@ -381,7 +379,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
 CommandBuffer GraphicsDevice::createCommandBuffer() {
     VkCommandBuffer vkCommandBuffer;
-    assert(ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &vkCommandBuffer) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &vkCommandBuffer));
 
     CommandBuffer commandBuffer    = OZ_CREATE_VK_OBJECT(CommandBuffer);
     commandBuffer->vkCommandBuffer = vkCommandBuffer;
@@ -394,7 +392,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     auto code = file::readFile(absolutePath);
 
     VkShaderModule shaderModule;
-    assert(ivkCreateShaderModule(m_device, code.size(), reinterpret_cast<const uint32_t*>(code.data()), &shaderModule) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreateShaderModule(m_device, code.size(), reinterpret_cast<const uint32_t*>(code.data()), &shaderModule));
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -414,11 +412,11 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
 RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout) {
     // create render pass //
     VkRenderPass vkRenderPass;
-    assert(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreateRenderPass(m_device, window->vkSwapChainImageFormat, &vkRenderPass));
 
     // create pipeline layout //
     VkPipelineLayout vkPipelineLayout;
-    assert(ivkCreatePipelineLayout(m_device, &vkPipelineLayout) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreatePipelineLayout(m_device, &vkPipelineLayout));
 
     // create vertex state input info // TODO: store at the VertexLayout struct instead of re-creating for each render pass
     VkPipelineVertexInputStateCreateInfo           vertexInputInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -453,21 +451,20 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
 
     // create graphics pipeline //
     VkPipeline vkGraphicsPipeline;
-    assert(ivkCreateGraphicsPipeline(m_device,
-                                     (VkPipelineShaderStageCreateInfo[]){vertexShader->vkPipelineShaderStageCreateInfo,
-                                                                         fragmentShader->vkPipelineShaderStageCreateInfo},
-                                     2,
-                                     window->vkSwapChainExtent,
-                                     vkPipelineLayout,
-                                     vkRenderPass,
-                                     &vertexInputInfo,
-                                     &vkGraphicsPipeline) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreateGraphicsPipeline(m_device,
+                                         (VkPipelineShaderStageCreateInfo[]){vertexShader->vkPipelineShaderStageCreateInfo,
+                                                                             fragmentShader->vkPipelineShaderStageCreateInfo},
+                                         2,
+                                         window->vkSwapChainExtent,
+                                         vkPipelineLayout,
+                                         vkRenderPass,
+                                         &vertexInputInfo,
+                                         &vkGraphicsPipeline));
 
     // create frame buffers //
     std::vector<VkFramebuffer> vkFrameBuffers(window->vkSwapChainImageViews.size());
     for (size_t i = 0; i < window->vkSwapChainImageViews.size(); i++) {
-        assert(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]) ==
-               VK_SUCCESS);
+        OZ_VK_ASSERT(ivkCreateFramebuffer(m_device, vkRenderPass, window->vkSwapChainExtent, window->vkSwapChainImageViews[i], &vkFrameBuffers[i]));
     }
 
     // create render pass object //
@@ -484,7 +481,7 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
 Semaphore GraphicsDevice::createSemaphore() {
     // create semaphore //
     VkSemaphore vkSemaphore;
-    assert(ivkCreateSemaphore(m_device, &vkSemaphore) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreateSemaphore(m_device, &vkSemaphore));
 
     // create semaphore object //
     Semaphore semaphore    = OZ_CREATE_VK_OBJECT(Semaphore);
@@ -523,11 +520,11 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
 
     // create buffer //
     VkBuffer vkBuffer;
-    assert(vkCreateBuffer(m_device, &bufferInfo, nullptr, &vkBuffer) == VK_SUCCESS);
+    OZ_VK_ASSERT(vkCreateBuffer(m_device, &bufferInfo, nullptr, &vkBuffer));
 
     // find suitable memory and allocate //
     VkDeviceMemory vkBufferMemory;
-    assert(ivkAllocateMemory(m_device, m_physicalDevice, vkBuffer, properties, &vkBufferMemory) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkAllocateMemory(m_device, m_physicalDevice, vkBuffer, properties, &vkBufferMemory));
 
     // bind memory //
     vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
@@ -553,7 +550,7 @@ void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
 Fence GraphicsDevice::createFence() {
     // create fence //
     VkFence vkFence;
-    assert(ivkCreateFence(m_device, &vkFence) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkCreateFence(m_device, &vkFence));
 
     // create fence object //
     Fence fence    = OZ_CREATE_VK_OBJECT(Fence);
@@ -590,9 +587,7 @@ uint32_t GraphicsDevice::getCurrentImage(Window window) const {
 bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
 
 void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
-    VkResult result =
-        ivkQueuePresent(window->vkPresentQueue, m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore, window->vkSwapChain, imageIndex);
-    assert(result == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkQueuePresent(window->vkPresentQueue, m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore, window->vkSwapChain, imageIndex));
 
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
@@ -605,19 +600,19 @@ void GraphicsDevice::beginCmd(CommandBuffer cmd, bool isSingleUse) const {
     beginInfo.flags            = isSingleUse ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
     beginInfo.pInheritanceInfo = nullptr; // optional
 
-    assert(vkBeginCommandBuffer(cmd->vkCommandBuffer, &beginInfo) == VK_SUCCESS);
+    OZ_VK_ASSERT(vkBeginCommandBuffer(cmd->vkCommandBuffer, &beginInfo));
 }
 
-void GraphicsDevice::endCmd(CommandBuffer cmd) const { assert(vkEndCommandBuffer(cmd->vkCommandBuffer) == VK_SUCCESS); }
+void GraphicsDevice::endCmd(CommandBuffer cmd) const { OZ_VK_ASSERT(vkEndCommandBuffer(cmd->vkCommandBuffer)); }
 
 void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    assert(ivkQueueSubmit(m_graphicsQueue,
-                          m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore,
-                          waitStage,
-                          cmd->vkCommandBuffer,
-                          m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore,
-                          m_inFlightFences[m_currentFrame]->vkFence) == VK_SUCCESS);
+    OZ_VK_ASSERT(ivkQueueSubmit(m_graphicsQueue,
+                               m_imageAvailableSemaphores[m_currentFrame]->vkSemaphore,
+                               waitStage,
+                               cmd->vkCommandBuffer,
+                               m_renderFinishedSemaphores[m_currentFrame]->vkSemaphore,
+                               m_inFlightFences[m_currentFrame]->vkFence));
 }
 
 void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {

@@ -16,7 +16,7 @@ class GraphicsDevice final {
     ~GraphicsDevice();
 
   public:
-    // create //
+    // create methods
     Window        createWindow(uint32_t width, uint32_t height, const char* name = "");
     CommandBuffer createCommandBuffer();
     Shader        createShader(const std::string& path, ShaderStage stage);
@@ -25,21 +25,21 @@ class GraphicsDevice final {
     Fence         createFence();
     Buffer        createBuffer(BufferType bufferType, uint64_t size, const void* data = nullptr);
 
-    // sync //
+    // sync methods
     void waitIdle() const;
     void waitGraphicsQueueIdle() const;
     void waitFences(Fence fence, uint32_t fenceCount, bool waitAll = true) const;
     void resetFences(Fence fence, uint32_t fenceCount) const;
 
-    // state getters //
+    // state getters
     CommandBuffer getCurrentCommandBuffer();
     uint32_t      getCurrentImage(Window window) const;
 
-    // window //
+    // window methods
     bool isWindowOpen(Window window) const;
     void presentImage(Window window, uint32_t imageIndex);
 
-    // commands //
+    // command methods
     void beginCmd(CommandBuffer cmd, bool isSingleUse = false) const;
     void endCmd(CommandBuffer cmd) const;
     void submitCmd(CommandBuffer cmd) const;
@@ -57,7 +57,7 @@ class GraphicsDevice final {
 
     void copyBuffer(Buffer src, Buffer dst, uint64_t size);
 
-    // free //
+    // free methods
     void free(Window window) const;
     void free(Shader shader) const;
     void free(RenderPass renderPass) const;

@@ -97,10 +97,28 @@ struct CommandBufferObject final : IObject {
 struct BufferObject final : IObject {
     VkBuffer       vkBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vkMemory = VK_NULL_HANDLE;
+    void*          data     = nullptr;
 
     void free(VkDevice vkDevice) override {
         vkDestroyBuffer(vkDevice, vkBuffer, nullptr);
         vkFreeMemory(vkDevice, vkMemory, nullptr);
+        data = nullptr;
+    }
+};
+
+struct DescriptorSetLayoutObject final : IObject {
+    VkDescriptorSetLayout vkDescriptorSetLayout = VK_NULL_HANDLE;
+
+    void free(VkDevice vkDevice) override { vkDestroyDescriptorSetLayout(vkDevice, vkDescriptorSetLayout, nullptr); }
+};
+
+struct DescriptorSetObject final : IObject {
+    VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
+    VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
+    void free(VkDevice vkDevice) override {
+        if (vkDescriptorSet != VK_NULL_HANDLE) {
+            vkFreeDescriptorSets(vkDevice, vkDescriptorPool, 1, &vkDescriptorSet);
+        }
     }
 };
 

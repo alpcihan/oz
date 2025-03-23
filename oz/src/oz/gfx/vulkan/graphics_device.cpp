@@ -2,12 +2,12 @@
 #include "oz/core/file/file.h"
 #include "oz/gfx/vulkan/objects_internal.h"
 
-#define OZ_VK_ASSERT(x) assert((x) == VK_SUCCESS)
-
 namespace oz::gfx::vk {
 
+#define OZ_VK_ASSERT(result) assert(result == VK_SUCCESS)
+
 namespace {
-static constexpr int FRAMES_IN_FLIGHT = 2;
+static constexpr int FRAMES_IN_FLIGHT = 1;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT             messageType,
@@ -23,7 +23,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
 } // namespace
 
 GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
-    // init glfw, TODO: seperate glfw logic
+    // init glfw
+    // TODO: seperate glfw logic
     glfwInit();
     uint32_t     extensionCount = 0;
     const char** extensions     = glfwGetRequiredInstanceExtensions(&extensionCount);
@@ -45,8 +46,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     }
 
     // populate layers
-    const std::vector<const char*> layers =
-        enableValidationLayers ? std::vector<const char*>{"VK_LAYER_KHRONOS_validation"} : std::vector<const char*>{};
+    std::vector<const char*> layers = enableValidationLayers ? std::vector<const char*>{"VK_LAYER_KHRONOS_validation"} : std::vector<const char*>{};
 
     // check if layers are supported
     {
@@ -57,33 +57,26 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 
         for (const char* layerName : layers) {
             bool layerFound = false;
-
             for (const auto& layerProperties : availableLayers) {
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
                     break;
                 }
             }
-
-            if (!layerFound) {
-                assert(false);
-            }
+            assert(layerFound);
         }
     }
 
     // populate debug messenger create info
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     {
         if (enableValidationLayers) {
-            debugCreateInfo                 = {};
             debugCreateInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
             debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
             debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
             debugCreateInfo.pfnUserCallback = debugCallback;
-        } else {
-            debugCreateInfo = {};
         }
     }
 
@@ -100,7 +93,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         // instance create info
         VkInstanceCreateInfo createInfo{};
         createInfo.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pNext                   = &debugCreateInfo;
+        createInfo.pNext                   = enableValidationLayers ? &debugCreateInfo : nullptr;
         createInfo.pApplicationInfo        = &appInfo;
         createInfo.enabledLayerCount       = static_cast<uint32_t>(layers.size());
         createInfo.ppEnabledLayerNames     = layers.data();
@@ -114,20 +107,17 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // create debug messenger
     if (enableValidationLayers) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
-        // TODO: check func != nullptr
         OZ_VK_ASSERT(func(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger));
     }
 
     // pick physical device
     {
-        // get physical devices
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
         assert(deviceCount > 0);
         std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, physicalDevices.data());
 
-        // find "suitable" GPU
         bool isGPUFound = false;
         for (const auto& physicalDevice : physicalDevices) {
             // check queue family support
@@ -138,8 +128,6 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, m_queueFamilies.data());
             for (int i = 0; i < m_queueFamilies.size(); i++) {
                 const auto& queueFamily = m_queueFamilies[i];
-
-                // graphics family
                 if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                     graphicsFamily = i;
                     break;
@@ -178,15 +166,13 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // create logical device
     {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-
-        float queuePriority = 1.0f;
+        float                                queuePriority = 1.0f;
         for (uint32_t queueFamily : std::vector<uint32_t>{m_graphicsFamily}) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = queueFamily;
             queueCreateInfo.queueCount       = 1;
             queueCreateInfo.pQueuePriorities = &queuePriority;
-
             queueCreateInfos.push_back(queueCreateInfo);
         }
 
@@ -218,13 +204,29 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         OZ_VK_ASSERT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool));
     }
 
+    // create a descriptor pool
+    {
+        const uint32_t DESCRIPTOR_POOL_SIZE = 1024;
+
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = DESCRIPTOR_POOL_SIZE;
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes    = &poolSize;
+        poolInfo.maxSets       = DESCRIPTOR_POOL_SIZE;
+
+        OZ_VK_ASSERT(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool));
+    }
+
     // init current frame
     m_currentFrame = 0;
 
     // create command buffers
-    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++)
         m_commandBuffers.emplace_back(std::move(createCommandBuffer()));
-    }
 
     // create synchronization objects
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -235,6 +237,9 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 }
 
 GraphicsDevice::~GraphicsDevice() {
+    // destroy descriptor pool
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+
     // destroy command pool
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     m_commandPool = VK_NULL_HANDLE;
@@ -278,7 +283,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
     // create surface
     VkSurfaceKHR vkSurface;
-    assert(glfwCreateWindowSurface(m_instance, vkWindow, nullptr, &vkSurface) == VK_SUCCESS);
+    OZ_VK_ASSERT(glfwCreateWindowSurface(m_instance, vkWindow, nullptr, &vkSurface));
 
     // create swap chain
     VkSwapchainKHR           vkSwapChain;
@@ -355,7 +360,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             }
         }
 
-        // get image count
+        // image count
         uint32_t imageCount = capabilities.minImageCount + 1;
         {
             if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -383,7 +388,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
             assert(presentFamilyFound);
 
-            // get present queue
+            // getpresent queue
             vkGetDeviceQueue(m_device, presentFamily, 0, &vkPresentQueue);
 
             // create swap chain
@@ -404,10 +409,9 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
                 createInfo.oldSwapchain     = VK_NULL_HANDLE;
 
                 if (m_graphicsFamily != presentFamily) {
-                    createInfo.imageSharingMode         = VK_SHARING_MODE_CONCURRENT;
-                    createInfo.queueFamilyIndexCount    = 2;
-                    const uint32_t queueFamilyIndices[] = {m_graphicsFamily, presentFamily};
-                    createInfo.pQueueFamilyIndices      = queueFamilyIndices;
+                    createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+                    createInfo.queueFamilyIndexCount = 2;
+                    createInfo.pQueueFamilyIndices   = (uint32_t[]){m_graphicsFamily, presentFamily};
                 } else {
                     createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
                     createInfo.queueFamilyIndexCount = 0;       // optional
@@ -445,7 +449,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
         }
     }
 
-    // crate window object
+    // create window object
     Window window                  = OZ_CREATE_VK_OBJECT(Window);
     window->vkWindow               = vkWindow;
     window->vkSurface              = vkSurface;
@@ -461,8 +465,8 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 }
 
 CommandBuffer GraphicsDevice::createCommandBuffer() {
-    VkCommandBuffer vkCommandBuffer;
     // allocate command buffer
+    VkCommandBuffer vkCommandBuffer;
     {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -510,7 +514,11 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     return shaderData;
 }
 
-RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragmentShader, Window window, const VertexLayout& vertexLayout) {
+RenderPass GraphicsDevice::createRenderPass(Shader                                  vertexShader,
+                                            Shader                                  fragmentShader,
+                                            Window                                  window,
+                                            const VertexLayoutInfo&                 vertexLayout,
+                                            std::vector<DescriptorSetLayout> const& descriptorSetLayouts) {
     // create render pass
     VkRenderPass vkRenderPass;
     {
@@ -554,19 +562,25 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
     }
 
     // create pipeline layout
-    VkPipelineLayout vkPipelineLayout;
+    VkPipelineLayout                   vkPipelineLayout;
+    std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts;
+    for (const auto& layout : descriptorSetLayouts) {
+        vkDescriptorSetLayouts.push_back(layout->vkDescriptorSetLayout);
+    }
+
     {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount         = 0;
-        pipelineLayoutInfo.pSetLayouts            = nullptr;
+        pipelineLayoutInfo.setLayoutCount         = vkDescriptorSetLayouts.size();
+        pipelineLayoutInfo.pSetLayouts            = vkDescriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges    = nullptr;
 
         OZ_VK_ASSERT(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &vkPipelineLayout));
     }
 
-    // create vertex state input info, TODO: store at the VertexLayout struct instead of re-creating for each render pass
+    // create vertex state input info
+    // TODO: store at the VertexLayout struct instead of re-creating for each render pass
     VkPipelineVertexInputStateCreateInfo           vertexInputInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
     VkVertexInputBindingDescription                bindingDescription{};
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions(vertexLayout.vertexLayoutAttributes.size());
@@ -600,6 +614,13 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
     // create graphics pipeline
     VkPipeline vkGraphicsPipeline;
     {
+        std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates    = dynamicStates.data();
+
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -642,19 +663,24 @@ RenderPass GraphicsDevice::createRenderPass(Shader vertexShader, Shader fragment
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask =
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
+        colorBlendAttachment.blendEnable         = VK_FALSE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+        colorBlendAttachment.colorBlendOp        = VK_BLEND_OP_ADD;      // Optional
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Optional
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+        colorBlendAttachment.alphaBlendOp        = VK_BLEND_OP_ADD;      // Optional
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlending.logicOpEnable   = VK_FALSE;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments    = &colorBlendAttachment;
-
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = 2;
-        VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-        dynamicState.pDynamicStates    = dynamicStates;
+        colorBlending.sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable     = VK_FALSE;
+        colorBlending.logicOp           = VK_LOGIC_OP_COPY; // Optional
+        colorBlending.attachmentCount   = 1;
+        colorBlending.pAttachments      = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f; // Optional
+        colorBlending.blendConstants[1] = 0.0f; // Optional
+        colorBlending.blendConstants[2] = 0.0f; // Optional
+        colorBlending.blendConstants[3] = 0.0f; // Optional
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType      = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -720,6 +746,7 @@ Semaphore GraphicsDevice::createSemaphore() {
 
 Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const void* data) {
     // init buffer info and buffer flags
+    bool                  persistent = false;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkBufferCreateInfo    bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -741,6 +768,8 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     case BufferType::Uniform:
         bufferInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        persistent = true;
+        break;
     default:
         throw std::runtime_error("Not supported buffer type!");
         break;
@@ -775,7 +804,7 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
         allocInfo.allocationSize  = memRequirements.size;
         allocInfo.memoryTypeIndex = i;
 
-        // allocate memory
+        // allocate memory //
         OZ_VK_ASSERT(vkAllocateMemory(m_device, &allocInfo, nullptr, &vkBufferMemory));
     }
 
@@ -783,19 +812,99 @@ Buffer GraphicsDevice::createBuffer(BufferType bufferType, uint64_t size, const 
     vkBindBufferMemory(m_device, vkBuffer, vkBufferMemory, 0);
 
     // copy the data to the buffer memory
-    if (data != nullptr) {
-        void* pData;
+    void* pData = nullptr;
+    if (data == nullptr) {
+        if (persistent) {
+            vkMapMemory(m_device, vkBufferMemory, 0, size, 0, &pData);
+        }
+    } else {
         vkMapMemory(m_device, vkBufferMemory, 0, size, 0, &pData);
         memcpy(pData, data, (size_t)size);
-        vkUnmapMemory(m_device, vkBufferMemory);
+        if (!persistent) {
+            vkUnmapMemory(m_device, vkBufferMemory);
+        }
     }
 
     // create buffer object
     Buffer buffer    = OZ_CREATE_VK_OBJECT(Buffer);
     buffer->vkBuffer = vkBuffer;
     buffer->vkMemory = vkBufferMemory;
+    buffer->data     = pData;
 
     return buffer;
+}
+
+DescriptorSetLayout GraphicsDevice::createDescriptorSetLayout(const DescriptorSetLayoutInfo& setLayout) {
+    // create descriptor set layout bindings
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings(setLayout.bindings.size());
+    for (int bindingIdx = 0; bindingIdx < setLayout.bindings.size(); bindingIdx++) {
+        const DescriptorSetLayoutBindingInfo& setLayoutBinding = setLayout.bindings[bindingIdx];
+
+        descriptorSetLayoutBindings[bindingIdx].binding            = bindingIdx;
+        descriptorSetLayoutBindings[bindingIdx].descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorSetLayoutBindings[bindingIdx].descriptorCount    = 1;
+        descriptorSetLayoutBindings[bindingIdx].stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
+        descriptorSetLayoutBindings[bindingIdx].pImmutableSamplers = nullptr;
+    };
+
+    // create descriptor set layout
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = descriptorSetLayoutBindings.size();
+    layoutInfo.pBindings    = descriptorSetLayoutBindings.data();
+
+    VkDescriptorSetLayout vkDescriptorSetLayout;
+    OZ_VK_ASSERT(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &vkDescriptorSetLayout));
+
+    // create descriptor set layout object
+    DescriptorSetLayout descriptorSetLayout    = OZ_CREATE_VK_OBJECT(DescriptorSetLayout);
+    descriptorSetLayout->vkDescriptorSetLayout = vkDescriptorSetLayout;
+
+    return descriptorSetLayout;
+}
+
+DescriptorSet GraphicsDevice::createDescriptorSet(DescriptorSetLayout descriptorSetLayout, const DescriptorSetInfo& descriptorSetInfo) {
+    // create descriptor set
+    VkDescriptorSetAllocateInfo allocInfo{};
+    {
+        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool     = m_descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts        = &descriptorSetLayout->vkDescriptorSetLayout;
+    }
+
+    // allocate descriptor sets
+    VkDescriptorSet vkDescriptorSet;
+    OZ_VK_ASSERT(vkAllocateDescriptorSets(m_device, &allocInfo, &vkDescriptorSet));
+
+    // update descriptor sets
+    for (int bindingIdx = 0; bindingIdx < descriptorSetInfo.bindings.size(); bindingIdx++) {
+        const DescriptorSetBindingInfo& descriptorSetBinding = descriptorSetInfo.bindings[bindingIdx];
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = descriptorSetBinding.bufferInfo.buffer->vkBuffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range  = descriptorSetBinding.bufferInfo.range;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet           = vkDescriptorSet;
+        descriptorWrite.dstBinding       = bindingIdx;
+        descriptorWrite.dstArrayElement  = 0;
+        descriptorWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount  = 1;
+        descriptorWrite.pBufferInfo      = &bufferInfo;
+        descriptorWrite.pImageInfo       = nullptr; // Optional
+        descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+        vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+    }
+
+    // create descriptor set object
+    DescriptorSet descriptorSet    = OZ_CREATE_VK_OBJECT(DescriptorSet);
+    descriptorSet->vkDescriptorSet = vkDescriptorSet;
+
+    return descriptorSet;
 }
 
 void GraphicsDevice::waitIdle() const { vkDeviceWaitIdle(m_device); }
@@ -824,7 +933,7 @@ void GraphicsDevice::waitFences(Fence fence, uint32_t fenceCount, bool waitAll) 
 
 void GraphicsDevice::resetFences(Fence fence, uint32_t fenceCount) const { vkResetFences(m_device, fenceCount, &fence->vkFence); }
 
-CommandBuffer GraphicsDevice::getCurrentCommandBuffer() { return m_commandBuffers[m_currentFrame]; }
+CommandBuffer GraphicsDevice::getCurrentCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
 
 uint32_t GraphicsDevice::getCurrentImage(Window window) const {
     glfwPollEvents();
@@ -843,10 +952,11 @@ uint32_t GraphicsDevice::getCurrentImage(Window window) const {
     return imageIndex;
 }
 
+uint32_t GraphicsDevice::getCurrentFrame() const { return m_currentFrame; }
+
 bool GraphicsDevice::isWindowOpen(Window window) const { return !glfwWindowShouldClose(window->vkWindow); }
 
 void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
-    // present image
     {
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -863,7 +973,7 @@ void GraphicsDevice::presentImage(Window window, uint32_t imageIndex) {
     m_currentFrame = (m_currentFrame + 1) % FRAMES_IN_FLIGHT;
 }
 
-void GraphicsDevice::cmdBegin(CommandBuffer cmd, bool isSingleUse) const {
+void GraphicsDevice::beginCmd(CommandBuffer cmd, bool isSingleUse) const {
     vkResetCommandBuffer(cmd->vkCommandBuffer, 0);
 
     VkCommandBufferBeginInfo beginInfo{};
@@ -874,10 +984,9 @@ void GraphicsDevice::cmdBegin(CommandBuffer cmd, bool isSingleUse) const {
     OZ_VK_ASSERT(vkBeginCommandBuffer(cmd->vkCommandBuffer, &beginInfo));
 }
 
-void GraphicsDevice::cmdEnd(CommandBuffer cmd) const { OZ_VK_ASSERT(vkEndCommandBuffer(cmd->vkCommandBuffer)); }
+void GraphicsDevice::endCmd(CommandBuffer cmd) const { OZ_VK_ASSERT(vkEndCommandBuffer(cmd->vkCommandBuffer)); }
 
-void GraphicsDevice::cmdSubmit(CommandBuffer cmd) const {
-    // submit command buffer
+void GraphicsDevice::submitCmd(CommandBuffer cmd) const {
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     {
         VkSubmitInfo submitInfo{};
@@ -895,7 +1004,7 @@ void GraphicsDevice::cmdSubmit(CommandBuffer cmd) const {
     }
 }
 
-void GraphicsDevice::cmdBeginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
+void GraphicsDevice::beginRenderPass(CommandBuffer cmd, RenderPass renderPass, uint32_t imageIndex) const {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass        = renderPass->vkRenderPass;
@@ -924,24 +1033,37 @@ void GraphicsDevice::cmdBeginRenderPass(CommandBuffer cmd, RenderPass renderPass
     vkCmdSetScissor(cmd->vkCommandBuffer, 0, 1, &scissor);
 }
 
-void GraphicsDevice::cmdEndRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
+void GraphicsDevice::endRenderPass(CommandBuffer cmd) const { vkCmdEndRenderPass(cmd->vkCommandBuffer); }
 
-void GraphicsDevice::cmdDraw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
+void GraphicsDevice::draw(CommandBuffer cmd, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const {
     vkCmdDraw(cmd->vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void GraphicsDevice::cmdDrawIndexed(
+void GraphicsDevice::drawIndexed(
     CommandBuffer cmd, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) const {
     vkCmdDrawIndexed(cmd->vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void GraphicsDevice::cmdBindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
+void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
     vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
 }
 
-void GraphicsDevice::cmdBindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
+void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {
     vkCmdBindIndexBuffer(cmd->vkCommandBuffer, indexBuffer->vkBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
+
+void GraphicsDevice::bindDescriptorSet(CommandBuffer cmd, RenderPass renderPass, DescriptorSet descriptorSet, uint32_t setIndex) {
+    vkCmdBindDescriptorSets(cmd->vkCommandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            renderPass->vkPipelineLayout,
+                            setIndex,
+                            1,
+                            &(descriptorSet->vkDescriptorSet),
+                            0,
+                            nullptr);
+}
+
+void GraphicsDevice::updateBuffer(Buffer buffer, const void* data, size_t size) { memcpy(buffer->data, data, size); }
 
 void GraphicsDevice::copyBuffer(Buffer src, Buffer dst, uint64_t size) {
     VkCommandBufferAllocateInfo allocInfo{};
@@ -985,5 +1107,6 @@ void GraphicsDevice::free(Semaphore semaphore) const { OZ_FREE_VK_OBJECT(m_devic
 void GraphicsDevice::free(Fence fence) const { OZ_FREE_VK_OBJECT(m_device, fence); }
 void GraphicsDevice::free(CommandBuffer commandBuffer) const { OZ_FREE_VK_OBJECT(m_device, commandBuffer); }
 void GraphicsDevice::free(Buffer buffer) const { OZ_FREE_VK_OBJECT(m_device, buffer); }
+void GraphicsDevice::free(DescriptorSetLayout descriptorSetLayout) const { OZ_FREE_VK_OBJECT(m_device, descriptorSetLayout); }
 
 } // namespace oz::gfx::vk

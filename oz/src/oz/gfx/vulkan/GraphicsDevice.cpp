@@ -187,11 +187,11 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
 }
 
 GraphicsDevice::~GraphicsDevice() {
-    // command pool //
+    // destroy command pool
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     m_commandPool = VK_NULL_HANDLE;
 
-    // synchronization //
+    // destroy synchronization objects
     for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
         free(m_renderFinishedSemaphores[i]);
         free(m_imageAvailableSemaphores[i]);
@@ -201,11 +201,11 @@ GraphicsDevice::~GraphicsDevice() {
     m_imageAvailableSemaphores.clear();
     m_inFlightFences.clear();
 
-    // device //
+    // destroy device
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;
 
-    // debug messenger //
+    // destroy debug messenger
     if (m_debugMessenger != VK_NULL_HANDLE) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
@@ -214,25 +214,25 @@ GraphicsDevice::~GraphicsDevice() {
         m_debugMessenger = VK_NULL_HANDLE;
     }
 
-    // instance //
+    // destroy instance
     vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
 
-    // glfw //
+    // destroy glfw
     glfwTerminate();
 }
 
 Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height, const char* name) {
-    // create window //
+    // create window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow* vkWindow = glfwCreateWindow(width, height, name, nullptr, nullptr);
 
-    // create surface //
+    // create surface
     VkSurfaceKHR vkSurface;
     assert(glfwCreateWindowSurface(m_instance, vkWindow, nullptr, &vkSurface) == VK_SUCCESS);
 
-    // create swap chain //
+    // create swap chain
     VkSwapchainKHR           vkSwapChain;
     VkExtent2D               vkSwapChainExtent;
     VkFormat                 vkSwapChainImageFormat;
@@ -240,15 +240,15 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
     std::vector<VkImageView> vkSwapChainImageViews;
     VkQueue                  vkPresentQueue;
     {
-        // query swap chain support //
+        // query swap chain support
         VkSurfaceCapabilitiesKHR        capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR>   presentModes;
         {
-            // capabilities //
+            // get physical device surface capabilities
             vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, vkSurface, &capabilities);
 
-            // formats //
+            // get physical device surface formats
             uint32_t formatCount;
             vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, vkSurface, &formatCount, nullptr);
             if (formatCount != 0) {
@@ -264,7 +264,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             }
         }
 
-        // choose surface format //
+        // choose surface format
         VkSurfaceFormatKHR surfaceFormat;
         {
             surfaceFormat = formats[0];
@@ -278,7 +278,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             vkSwapChainImageFormat = surfaceFormat.format;
         }
 
-        // choose present mode //
+        // choose present mode
         VkPresentModeKHR presentMode;
         {
             presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -290,7 +290,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             }
         }
 
-        // choose extent //
+        // choose extent
         {
             vkSwapChainExtent = capabilities.currentExtent;
 
@@ -307,7 +307,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             }
         }
 
-        // image count //
+        // get image count
         uint32_t imageCount = capabilities.minImageCount + 1;
         {
             if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -315,7 +315,7 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
             }
         }
 
-        // get present queue and create swap chain //
+        // get present queue and create swap chain
         {
             uint32_t presentFamily      = VK_QUEUE_FAMILY_IGNORED;
             bool     presentFamilyFound = false;
@@ -335,34 +335,54 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
             assert(presentFamilyFound);
 
-            // present queue
+            // get present queue
             vkGetDeviceQueue(m_device, presentFamily, 0, &vkPresentQueue);
 
-            // swap chain
-            assert(ivkCreateSwapChain(m_device,
-                                      vkSurface,
-                                      surfaceFormat,
-                                      presentMode,
-                                      capabilities.currentTransform,
-                                      imageCount,
-                                      {m_graphicsFamily, presentFamily},
-                                      vkSwapChainExtent,
-                                      &vkSwapChain) == VK_SUCCESS);
+            // create swap chain
+            {
+                VkSwapchainCreateInfoKHR createInfo{};
+                createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+                createInfo.surface          = vkSurface;
+                createInfo.minImageCount    = imageCount;
+                createInfo.imageFormat      = surfaceFormat.format;
+                createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+                createInfo.imageExtent      = vkSwapChainExtent;
+                createInfo.imageArrayLayers = 1;
+                createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                createInfo.preTransform     = capabilities.currentTransform;
+                createInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+                createInfo.presentMode      = presentMode;
+                createInfo.clipped          = VK_TRUE;
+                createInfo.oldSwapchain     = VK_NULL_HANDLE;
+
+                if (m_graphicsFamily != presentFamily) {
+                    createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+                    createInfo.queueFamilyIndexCount = 2;
+                    const uint32_t queueFamilyIndices[] = {m_graphicsFamily, presentFamily};
+                    createInfo.pQueueFamilyIndices   = queueFamilyIndices;
+                } else {
+                    createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
+                    createInfo.queueFamilyIndexCount = 0;       // optional
+                    createInfo.pQueueFamilyIndices   = nullptr; // optional
+                }
+
+                OZ_VK_ASSERT(vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &vkSwapChain));
+            }
         }
 
-        // images //
+        // get swap chain images
         vkGetSwapchainImagesKHR(m_device, vkSwapChain, &imageCount, nullptr);
         vkSwapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(m_device, vkSwapChain, &imageCount, vkSwapChainImages.data());
 
-        // create image views //
+        // create image views
         vkSwapChainImageViews.resize(vkSwapChainImages.size());
         for (size_t i = 0; i < vkSwapChainImageViews.size(); i++) {
             assert(ivkCreateImageView(m_device, vkSwapChainImages[i], vkSwapChainImageFormat, &vkSwapChainImageViews[i]) == VK_SUCCESS);
         }
     }
 
-    // crate window object //
+    // crate window object
     Window window                  = OZ_CREATE_VK_OBJECT(Window);
     window->vkWindow               = vkWindow;
     window->vkSurface              = vkSurface;
@@ -379,8 +399,18 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
 
 CommandBuffer GraphicsDevice::createCommandBuffer() {
     VkCommandBuffer vkCommandBuffer;
-    OZ_VK_ASSERT(ivkAllocateCommandBuffers(m_device, m_commandPool, 1, &vkCommandBuffer));
+    // allocate command buffer
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool        = m_commandPool;
+        allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
 
+        OZ_VK_ASSERT(vkAllocateCommandBuffers(m_device, &allocInfo, &vkCommandBuffer));
+    }
+
+    // create command buffer object
     CommandBuffer commandBuffer    = OZ_CREATE_VK_OBJECT(CommandBuffer);
     commandBuffer->vkCommandBuffer = vkCommandBuffer;
     return commandBuffer;
@@ -391,8 +421,16 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     absolutePath += path + ".spv";
     auto code = file::readFile(absolutePath);
 
+    // create shader module
     VkShaderModule shaderModule;
-    OZ_VK_ASSERT(ivkCreateShaderModule(m_device, code.size(), reinterpret_cast<const uint32_t*>(code.data()), &shaderModule));
+    {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
+
+        OZ_VK_ASSERT(vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule));
+    }
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -400,7 +438,7 @@ Shader GraphicsDevice::createShader(const std::string& path, ShaderStage stage) 
     shaderStageInfo.module = shaderModule;
     shaderStageInfo.pName  = "main";
 
-    // create shader object //
+    // create shader object
     Shader shaderData                           = OZ_CREATE_VK_OBJECT(Shader);
     shaderData->stage                           = stage;
     shaderData->vkShaderModule                  = shaderModule;

@@ -4,13 +4,19 @@ using namespace oz::gfx::vk;
 // vertex data
 struct Vertex {
     glm::vec2 pos;
-    glm::vec3 col;
 };
 
-const std::vector<Vertex> vertices       = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+const std::vector<glm::vec4> colors =  {{1,0,0,0},  //Red
+                                            {0,1,0,0},  //Green
+                                            {0,0,1,0},  //Blue
+                                            {1,0,1,0},  //Magenta
+                                        };
+VkDeviceSize              colorArraySize = sizeof(colors[0]) * colors.size();
+
+const std::vector<Vertex> vertices       = {{{-0.5f, -0.5f}},
+                                            {{0.5f, -0.5f}},
+                                            {{0.5f, 0.5f}},
+                                            {{-0.5f, 0.5f}}};
 VkDeviceSize              vertBufferSize = sizeof(vertices[0]) * vertices.size();
 
 // index data
@@ -47,7 +53,7 @@ int main() {
     // create uniform buffers
     Buffer mvpBuffer   = device.createBuffer(BufferType::Uniform, sizeof(MVP));
     Buffer countBuffer = device.createBuffer(BufferType::Uniform, sizeof(uint32_t));
-    Buffer numBuffer   = device.createBuffer(BufferType::Uniform, sizeof(uint32_t));
+    Buffer colorBuffer   = device.createBuffer(BufferType::Uniform, colorArraySize);
 
     // Create descriptor set layouts
     DescriptorSetLayout mvpLayout = device.createDescriptorSetLayout(DescriptorSetLayoutInfo({
@@ -68,7 +74,7 @@ int main() {
     DescriptorSet countSet = device.createDescriptorSet(countLayout,
                                                         DescriptorSetInfo({
                                                             DescriptorSetBindingInfo(DescriptorSetBufferInfo(countBuffer, sizeof(uint32_t))),
-                                                            DescriptorSetBindingInfo(DescriptorSetBufferInfo(numBuffer, sizeof(uint32_t))),
+                                                            DescriptorSetBindingInfo(DescriptorSetBufferInfo(colorBuffer, colorArraySize)),
                                                         }));
 
     // create render pass
@@ -76,15 +82,13 @@ int main() {
                                                     fragShader,
                                                     window,
                                                     VertexLayoutInfo(sizeof(Vertex),
-                                                                     {VertexLayoutAttributeInfo(offsetof(Vertex, pos), Format::R32G32_SFLOAT),
-                                                                      VertexLayoutAttributeInfo(offsetof(Vertex, col), Format::R32G32B32_SFLOAT)}),
+                                                                     {VertexLayoutAttributeInfo(offsetof(Vertex, pos), Format::R32G32_SFLOAT)}),
                                                     {mvpLayout, countLayout});
 
     device.free(mvpLayout);
     device.free(countLayout);
 
     uint32_t frameCount = 0;
-    uint32_t num   = 1;
     // render loop
     while (device.isWindowOpen(window)) {
         uint32_t      imageIndex = device.getCurrentImage(window);
@@ -103,7 +107,7 @@ int main() {
             mvp.proj[1][1] *= -1;
             device.updateBuffer(mvpBuffer, &mvp, sizeof(mvp));
             device.updateBuffer(countBuffer, &frameCount, sizeof(frameCount));
-            device.updateBuffer(numBuffer, &num, sizeof(num));
+            device.updateBuffer(colorBuffer, colors.data(), colorArraySize);
         }
 
         device.beginCmd(cmd);
@@ -133,7 +137,7 @@ int main() {
     device.free(indexBuffer);
     device.free(mvpBuffer);
     device.free(countBuffer);
-    device.free(numBuffer);
+    device.free(colorBuffer);
 
     return 0;
 }

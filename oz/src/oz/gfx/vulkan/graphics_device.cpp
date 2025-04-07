@@ -42,7 +42,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
     
-    #if REQUIRES_VK_PORTABILITY_SUBSET
+    #if OZ_REQUIRES_VK_PORTABILITY_SUBSET
     requiredExtensions.push_back("VK_KHR_portability_subset");
     #endif
 

@@ -2,9 +2,15 @@
 #include "oz/core/file/file.h"
 #include "oz/gfx/vulkan/objects_internal.h"
 
+#include <cstring>
+
 namespace oz::gfx::vk {
 
 #define OZ_VK_ASSERT(result) assert(result == VK_SUCCESS)
+
+#if defined(__APPLE__)
+    #define OZ_REQUIRES_VK_PORTABILITY_SUBSET
+#endif
 
 namespace {
 static constexpr int FRAMES_IN_FLIGHT = 1;
@@ -32,9 +38,11 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // populate required extensions
     const std::vector<const char*> requiredExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    
+        #ifdef OZ_REQUIRES_VK_PORTABILITY_SUBSET
         "VK_KHR_portability_subset",
+        #endif
     };
-
     // populate required instance extensions
     std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
     {
@@ -118,8 +126,25 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, physicalDevices.data());
 
+        std::cout << "Found " << deviceCount << " physical device(s):\n";
+
         bool isGPUFound = false;
         for (const auto& physicalDevice : physicalDevices) {
+            // Query and print device properties
+            VkPhysicalDeviceProperties deviceProperties;
+            vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+
+            std::string deviceTypeStr;
+            switch (deviceProperties.deviceType) {
+                case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: deviceTypeStr = "Discrete GPU"; break;
+                case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: deviceTypeStr = "Integrated GPU"; break;
+                case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: deviceTypeStr = "Virtual GPU"; break;
+                case VK_PHYSICAL_DEVICE_TYPE_CPU: deviceTypeStr = "CPU"; break;
+                default: deviceTypeStr = "Other"; break;
+            }
+
+            std::cout << "  - " << deviceProperties.deviceName << " (" << deviceTypeStr << ")\n";
+
             // check queue family support
             std::optional<uint32_t> graphicsFamily;
             uint32_t                queueFamilyCount = 0;
@@ -154,6 +179,7 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
             bool isSuitable = areExtensionsSupported && areQueueFamiliesSupported;
 
             if (isSuitable) {
+                std::cout << "  -> Selected device: " << deviceProperties.deviceName << "\n";
                 m_graphicsFamily = graphicsFamily.value();
                 m_physicalDevice = physicalDevice;
                 isGPUFound       = true;
@@ -162,7 +188,6 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
         }
         assert(isGPUFound);
     }
-
     // create logical device
     {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -408,10 +433,12 @@ Window GraphicsDevice::createWindow(const uint32_t width, const uint32_t height,
                 createInfo.clipped          = VK_TRUE;
                 createInfo.oldSwapchain     = VK_NULL_HANDLE;
 
+                uint32_t queueFamilyIndices[] = {m_graphicsFamily,presentFamily};
+
                 if (m_graphicsFamily != presentFamily) {
                     createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
                     createInfo.queueFamilyIndexCount = 2;
-                    createInfo.pQueueFamilyIndices   = (uint32_t[]){m_graphicsFamily, presentFamily};
+                    createInfo.pQueueFamilyIndices   = queueFamilyIndices;
                 } else {
                     createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
                     createInfo.queueFamilyIndexCount = 0;       // optional
@@ -685,8 +712,9 @@ RenderPass GraphicsDevice::createRenderPass(Shader                              
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType      = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages =
-            (VkPipelineShaderStageCreateInfo[]){vertexShader->vkPipelineShaderStageCreateInfo, fragmentShader->vkPipelineShaderStageCreateInfo};
+
+        VkPipelineShaderStageCreateInfo stages[]= {vertexShader->vkPipelineShaderStageCreateInfo, fragmentShader->vkPipelineShaderStageCreateInfo};
+        pipelineInfo.pStages =stages;
         pipelineInfo.pVertexInputState   = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &inputAssembly;
         pipelineInfo.pViewportState      = &viewportState;
@@ -1045,7 +1073,9 @@ void GraphicsDevice::drawIndexed(
 }
 
 void GraphicsDevice::bindVertexBuffer(CommandBuffer cmd, Buffer vertexBuffer) {
-    vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, (VkBuffer[]){vertexBuffer->vkBuffer}, (VkDeviceSize[]){0});
+    VkBuffer vertexBuffers[] = {vertexBuffer->vkBuffer};    
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(cmd->vkCommandBuffer, 0, 1, vertexBuffers, offsets);
 }
 
 void GraphicsDevice::bindIndexBuffer(CommandBuffer cmd, Buffer indexBuffer) {

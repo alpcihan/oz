@@ -9,9 +9,7 @@ namespace oz::gfx::vk {
 #define OZ_VK_ASSERT(result) assert(result == VK_SUCCESS)
 
 #if defined(__APPLE__)
-    #define OZ_REQUIRES_VK_PORTABILITY_SUBSET 1
-#else
-    #define OZ_REQUIRES_VK_PORTABILITY_SUBSET 0
+    #define OZ_REQUIRES_VK_PORTABILITY_SUBSET
 #endif
 
 namespace {
@@ -40,12 +38,11 @@ GraphicsDevice::GraphicsDevice(const bool enableValidationLayers) {
     // populate required extensions
     const std::vector<const char*> requiredExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
     
-    #if OZ_REQUIRES_VK_PORTABILITY_SUBSET
-    requiredExtensions.push_back("VK_KHR_portability_subset");
-    #endif
-
+        #ifdef OZ_REQUIRES_VK_PORTABILITY_SUBSET
+        "VK_KHR_portability_subset",
+        #endif
+    };
     // populate required instance extensions
     std::vector<const char*> requiredInstanceExtensions(extensions, extensions + extensionCount);
     {
